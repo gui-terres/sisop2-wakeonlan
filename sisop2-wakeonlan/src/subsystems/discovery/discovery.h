@@ -16,7 +16,7 @@ namespace Server {
 }
 
 namespace Client {
-    int socket();
+    int socket(int argc, const char *leaderHostname);
 }
 
 #endif // DISCOVERY_H
