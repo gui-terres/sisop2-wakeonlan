@@ -1,8 +1,22 @@
-#ifndef SEND_SOCKET_H
-#define SEND_SOCKET_H
+#ifndef DISCOVERY_H
+#define DISCOVERY_H
+
+#include <string>
+
+using std::string;
+
+namespace {
+    using discoveredData = struct {
+        std::string hostname;
+    };
+}
 
 namespace Server {
     int socket();
 }
 
-#endif // SEND_SOCKET_H
+namespace Client {
+    int socket();
+}
+
+#endif // DISCOVERY_H
