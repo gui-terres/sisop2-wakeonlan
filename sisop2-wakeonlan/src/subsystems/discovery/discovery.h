@@ -3,11 +3,15 @@
 
 #include <string>
 
+#define MAC_ADDRESS_SIZE 18
+
 using std::string;
 
 namespace {
     using discoveredData = struct {
         std::string hostname;
+        std::string ipAddress;
+        char macAddress[MAC_ADDRESS_SIZE];
     };
 }
 

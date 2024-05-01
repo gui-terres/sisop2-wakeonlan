@@ -4,9 +4,6 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-    
-    cout << argc << endl;
-
     switch(argc) {
         case 1: {
             cout << "Leader mode" << endl;

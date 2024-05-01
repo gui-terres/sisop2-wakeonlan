@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ifaddrs.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #include "./discovery.h"
 
@@ -17,7 +20,7 @@
 using namespace std;
 
 namespace Client {
-    int getClientHostname(char *buffer, size_t bufferSize, string &hostname) {
+    int getHostname(char *buffer, size_t bufferSize, string &hostname) {
         memset(buffer, 0, sizeof(buffer));
 
         if ((gethostname(buffer, bufferSize)) == -1) {
@@ -27,6 +30,46 @@ namespace Client {
 
         hostname.assign(buffer);
         memset(buffer, 0, sizeof(buffer));
+
+        return 0;
+    }
+
+    int getIpAddress(string &ipAddress) {
+        struct ifaddrs *netInterfaces, *tempInterface = NULL;
+
+        if (!getifaddrs(&netInterfaces)) {
+            tempInterface = netInterfaces;
+
+            while(tempInterface != NULL) {
+                if(tempInterface->ifa_addr->sa_family == AF_INET) {
+                    if(strcmp(tempInterface->ifa_name, "eth0")){
+                        ipAddress=inet_ntoa(((struct sockaddr_in*)tempInterface->ifa_addr)->sin_addr);
+                    }
+                }
+
+                tempInterface = tempInterface->ifa_next;
+            }
+        } else {
+            cout << "ERROR on getting IP Adress." << endl;
+            return -1;
+        }
+
+        return 0;
+    }
+
+    int getMacAddress(int sockfd, char *macAddress, size_t size) {
+        struct ifreq ifr;
+
+        strcpy(ifr.ifr_name, "eth0");
+
+        if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0) {
+            cerr << "ERROR on getting Mac Address." << endl;
+            close(sockfd);
+            return -1;
+        }
+
+        unsigned char* mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
+        snprintf(macAddress, size, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
         return 0;
     }
@@ -54,9 +97,18 @@ namespace Client {
         serv_addr.sin_port = htons(PORT);    
         serv_addr.sin_addr = *((struct in_addr *) server -> h_addr);
         bzero(&(serv_addr.sin_zero), 8);  
-
-        /** Get hostname, MAC Address, IP Address, Status **/
+   
         char buffer[BUFFER_SIZE];
+
+        discoveredData data;
+        getHostname(buffer, BUFFER_SIZE, data.hostname);
+        getIpAddress(data.ipAddress);
+        getMacAddress(sockfd, data.macAddress, MAC_ADDRESS_SIZE);
+
+        cout << "Hostname: " << data.hostname << endl;
+        cout << "IP Address: " << data.ipAddress << endl;
+        cout << "Mac Address: " << data.macAddress << endl;
+
         printf("Enter the message: ");
         bzero(buffer, 256);
         fgets(buffer, 256, stdin);
