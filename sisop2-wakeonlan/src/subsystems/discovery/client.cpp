@@ -11,7 +11,7 @@
 
 #include "./discovery.h"
 
-#define PORT 4001
+#define PORT 4000
 #define BUFFER_SIZE 256
 
 using namespace std;
