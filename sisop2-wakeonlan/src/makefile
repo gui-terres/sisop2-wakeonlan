@@ -7,7 +7,7 @@ DISCOVERY = $(SUBSYSTEMS)/discovery
 
 # FIles to be compiled
 # You can add a new file by appending its path to the SOURCES list
-SOURCES = main.cpp $(DISCOVERY)/leader.cpp
+SOURCES = main.cpp $(DISCOVERY)/server.cpp $(DISCOVERY)/client.cpp
 
 # .exe name
 TARGET = main

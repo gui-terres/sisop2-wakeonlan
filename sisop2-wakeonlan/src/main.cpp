@@ -1,22 +1,24 @@
 #include <iostream>
-#include "subsystems/discovery/discovery.h"
+#include "subsystems/discovery/discovery.hpp"
 
 using namespace std;
 
 int main(int argc, char **argv) {
     switch(argc) {
         case 1: {
-            cout << "Leader mode" << endl;
-            Server::socket();
-            break;
+            cout << "Manager mode" << endl;
+            Server server;
+            server.sendSocket();
+
+            return 0;
         };
         case 2: {
             cout << "Client mode" << endl;
-            Client::socket(argc, argv[1]);
-            break;
+            Client client;
+            client.sendSocket(argc, argv[1]);
+
+            return 0;
         }
         default: cout << "Invalid initialiaztion!" << endl;
     }
-
-    return 0;
 }
