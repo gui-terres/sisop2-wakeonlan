@@ -11,24 +11,47 @@ int main(int argc, char **argv) {
 
     int selectedButton = 1; // Botão inicialmente selecionado
     bool isArrowKey_v = 0;
+    bool isRawMode = 0;
+
     // Loop principal para interação com o usuário
     while (true) {
         // Desenha a interface com os botões e mostra no terminal
-        drawInterface(selectedButton);
+        if (isRawMode){
+            drawInterface(selectedButton);
+            printf("Digite 'BACK' para voltar ao menu.\n");
+            string input;
+            getline(cin, input);
 
-        // Lê o caractere de entrada do usuário
-        char input;
-        std::cin >> input;
+            if (input == "EXIT"){
+                selectedButton=4;
+                break;
+            }else if (input == "BACK"){
+                enableRawMode();
+                isRawMode = false;
+            }else{
+                continue;
+            }
+        }else{
+            drawInterface(selectedButton);
+            // Lê o caractere de entrada do usuário
+            char input;
+            std::cin >> input;
 
-        bool tmp = isArrowKey(input);
-        // Processa a entrada do usuário para atualizar o botão selecionado
-        processInput(input, selectedButton, isArrowKey_v);
+            bool tmp = isArrowKey(input);
+            // Processa a entrada do usuário para atualizar o botão selecionado
+            processInput(input, selectedButton, isArrowKey_v);
 
-        isArrowKey_v = tmp;
+            isArrowKey_v = tmp;
 
-        // Verifica se o usuário pressionou Enter para sair do programa
-        if (input == '\n') {
-            break;
+            // Verifica se o usuário pressionou Enter para sair do programa
+            if (input == '\n') {
+                if (selectedButton == 3) {
+                    disableRawMode();
+                    isRawMode = true;
+                    continue;   
+                }
+                break;
+            }
         }
     }
 
@@ -37,17 +60,16 @@ int main(int argc, char **argv) {
             cout << "Manager mode" << endl;
             Server server;
             server.sendSocket();
-
             break;
         }
         case 2: {
             cout << "Client mode" << endl;
             Client client;
             client.sendSocket(argc, argv[1]);
-
             break;
         }
-        case 3: {
+        case 4: {
+            printf("Saindo do sistema...\n");
             break;
         }
         default:

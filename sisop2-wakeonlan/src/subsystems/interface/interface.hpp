@@ -8,12 +8,16 @@
 #include <cstdlib> // Para a função exit()
 #include <unistd.h>
 
-#define NUM_BUTTONS 3
+#define NUM_BUTTONS 4
 #define BUTTON_SIZE 20
 
 // Estrutura para armazenar informações de cada botão
 struct Button {
     std::string label;
+
+    // Construtor para inicializar o botão
+    Button(const std::string& lbl = "")
+        : label(lbl) {}
 };
 
 // Função para inicializar os botões
@@ -42,7 +46,5 @@ void processInput(char input, int &selectedButton, bool isArrowKey);
 
 // Função para verificar se o caractere é uma seta do teclado
 bool isArrowKey(char input);
-
-
 
 #endif // INTERFACE_HPP

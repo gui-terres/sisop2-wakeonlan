@@ -12,9 +12,10 @@ void initializeButtons() {
         exit(1);
     }
 
-    new (&buttons[0]) Button{"Descobrir máquinas na rede"};
-    new (&buttons[1]) Button{"Listar máquinas no sistema"};
-    new (&buttons[2]) Button{"Sair"};
+    new (&buttons[0]) Button{"Acordar uma máquina"};
+    new (&buttons[1]) Button{"Listar máquinas"};
+    new (&buttons[2]) Button{"Ativar linha de comando"};
+    new (&buttons[3]) Button{"Sair"};
 }
 
 void clearScreen() {
