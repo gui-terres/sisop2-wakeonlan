@@ -75,21 +75,36 @@ int Client::getMacAddress(int sockfd, char *macAddress, size_t size) {
 
 // TODO: Check if it's correct - probably not
 int Client::getStatus(Status &status) {
-    ifstream power("/sys/class/power_supply/AC/online");
+    FILE* fp = popen("systemctl is-active systemd-timesyncd.service", "r");
+    if (!fp) {
+        std::cerr << "Failed to get status." << std::endl;
+        return false;
+    }
 
-    if (power.is_open()) {
-        int returnStatus;
-        power >> returnStatus;
-
-        status = intToStatus(returnStatus);
-        power.close();
-
-        return 0;
+    char result[10];
+    if (fgets(result, sizeof(result), fp)) {
+        pclose(fp);
+        // Check if the service is active
+        return (std::string(result).find("active") != std::string::npos);
     } else {
-        cerr << "ERROR on checking PC status." << endl;
-        return -1;
+        std::cerr << "Failed to read command output." << std::endl;
+        pclose(fp);
+        return false;
     }
 }
+
+    // if (power.is_open()) {
+    //     int returnStatus;
+    //     power >> returnStatus;
+
+    //     status = intToStatus(returnStatus);
+    //     power.close();
+
+    //     return 0;
+    // } else {
+    //     cerr << "ERROR on checking PC status." << endl;
+    //     return -1;
+    // }
 
 int Client::sendSocket(int argc, const char *serverHostname) {
     // serverHostname not provided
