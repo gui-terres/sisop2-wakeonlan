@@ -77,19 +77,25 @@ int Client::getMacAddress(int sockfd, char *macAddress, size_t size) {
 int Client::getStatus(Status &status) {
     FILE* fp = popen("systemctl is-active systemd-timesyncd.service", "r");
     if (!fp) {
-        std::cerr << "Failed to get status." << std::endl;
-        return false;
+        std::cerr << "Failed to open power status file." << std::endl;
+        return -1;
     }
 
     char result[10];
     if (fgets(result, sizeof(result), fp)) {
         pclose(fp);
         // Check if the service is active
-        return (std::string(result).find("active") != std::string::npos);
+        if (std::string(result).find("active") != std::string::npos) {
+            status = Status::AWAKEN;
+        } else {
+            status = Status::ASLEEP;
+        }
+
+        return 0;
     } else {
         std::cerr << "Failed to read command output." << std::endl;
         pclose(fp);
-        return false;
+        return -1;
     }
 }
 
