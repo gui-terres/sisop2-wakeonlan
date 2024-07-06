@@ -25,8 +25,6 @@ int Server::sendSocket() {
     
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) 
         cerr << "ERROR on binding socket." << endl;
-    
-    // char buffer[256];
 
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
@@ -34,10 +32,18 @@ int Server::sendSocket() {
     while (true) {
         // Receive from a socket
         DiscoveredData receivedData;
-        if (recvfrom(sockfd, &receivedData, sizeof(receivedData), 0, (struct sockaddr *) &cli_addr, &clilen)) 
+        memset(&receivedData, 0, sizeof(receivedData));
+
+        ssize_t bytesReceived = recvfrom(sockfd, &receivedData, sizeof(receivedData), 0, (struct sockaddr *) &cli_addr, &clilen);
+        if (bytesReceived < 0) {
             cerr << "ERROR on recvfrom." << endl;
+            break;
+        }
+
+        cout << "Hostname: " << receivedData.hostname << endl;
+        cout << "IP Address: " << receivedData.ipAddress << endl;
+        cout << "MAC Address: " << receivedData.macAddress << endl;
         
-        // cout << "Received a datagram: " << buffer << endl;   MUST BE DELETED
         
         // Send socket
         if (sendto(sockfd, "Got your message\n", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr)) < 0) 

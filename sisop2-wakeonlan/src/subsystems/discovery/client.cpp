@@ -19,7 +19,7 @@
 
 using namespace std;
 
-int Client::getHostname(char *buffer, size_t bufferSize, string &hostname) {
+int Client::getHostname(char *buffer, size_t bufferSize, DiscoveredData &data) {
     memset(buffer, 0, sizeof(buffer));
 
     if ((gethostname(buffer, bufferSize)) == -1) {
@@ -27,13 +27,15 @@ int Client::getHostname(char *buffer, size_t bufferSize, string &hostname) {
         return -1;
     }
 
-    hostname.assign(buffer);
+    strncpy(data.hostname, buffer, MAX_HOSTNAME_SIZE - 1);
+    data.hostname[MAX_HOSTNAME_SIZE - 1] = '/0';
+
     memset(buffer, 0, sizeof(buffer));
 
     return 0;
 }
 
-int Client::getIpAddress(string &ipAddress) {
+int Client::getIpAddress(DiscoveredData &data) {
     struct ifaddrs *netInterfaces, *tempInterface = NULL;
 
     if (!getifaddrs(&netInterfaces)) {
@@ -42,12 +44,15 @@ int Client::getIpAddress(string &ipAddress) {
         while(tempInterface != NULL) {
             if(tempInterface->ifa_addr->sa_family == AF_INET) {
                 if(strcmp(tempInterface->ifa_name, "eth0") == 0){
-                    ipAddress=inet_ntoa(((struct sockaddr_in*)tempInterface->ifa_addr)->sin_addr);
+                    strncpy(data.ipAddress, inet_ntoa(((struct sockaddr_in*)tempInterface->ifa_addr)->sin_addr), IP_ADDRESS_SIZE - 1);
+                    data.ipAddress[IP_ADDRESS_SIZE - 1] = '\0';
                 }
             }
 
             tempInterface = tempInterface->ifa_next;
         }
+
+        freeifaddrs(netInterfaces);
     } else {
         cout << "ERROR on getting IP Adress." << endl;
         return -1;
@@ -73,7 +78,6 @@ int Client::getMacAddress(int sockfd, char *macAddress, size_t size) {
     return 0;
 }
 
-// TODO: Check if it's correct - probably not
 int Client::getStatus(Status &status) {
     FILE* fp = popen("systemctl is-active systemd-timesyncd.service", "r");
     // FILE* fp = popen("service systemd-timesyncd status", "r");
@@ -87,7 +91,6 @@ int Client::getStatus(Status &status) {
         pclose(fp);
         // Check if the service is active
         if (std::string(result).find("active") != std::string::npos) {
-        // if (std::string(result).find("Active: active (running)") != std::string::npos) {
             status = Status::AWAKEN;
         } else {
             status = Status::ASLEEP;
@@ -100,19 +103,6 @@ int Client::getStatus(Status &status) {
         return -1;
     }
 }
-
-    // if (power.is_open()) {
-    //     int returnStatus;
-    //     power >> returnStatus;
-
-    //     status = intToStatus(returnStatus);
-    //     power.close();
-
-    //     return 0;
-    // } else {
-    //     cerr << "ERROR on checking PC status." << endl;
-    //     return -1;
-    // }
 
 int Client::sendSocket(int argc, const char *serverHostname) {
     // serverHostname not provided
@@ -141,15 +131,15 @@ int Client::sendSocket(int argc, const char *serverHostname) {
     char buffer[BUFFER_SIZE];
 
     DiscoveredData pcData;
-    getHostname(buffer, BUFFER_SIZE, pcData.hostname);
-    getIpAddress(pcData.ipAddress);
+    getHostname(buffer, BUFFER_SIZE, pcData);
+    getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-    // getStatus(pcData.status);
+    getStatus(pcData.status);
 
     cout << "Hostname: " << pcData.hostname << endl;
     cout << "IP Address: " << pcData.ipAddress << endl;
     cout << "Mac Address: " << pcData.macAddress << endl;
-    // cout << "Status: " << pcData.status << endl;
+    cout << "Status: " << pcData.status << endl;
 
     /** Uncomment if necessary **/
     // printf("Enter the message: ");
@@ -158,12 +148,10 @@ int Client::sendSocket(int argc, const char *serverHostname) {
 
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in)) < 0)
         cerr << "ERROR on sendto." << endl;
-
-    cout << "Size: " << sizeof(pcData) << endl;
-    cout << "Sent" << endl;
     
     struct sockaddr_in from;
     unsigned int length = sizeof(struct sockaddr_in);
+    memset(buffer, 0, sizeof(buffer));
     if (recvfrom(sockfd, buffer, 256, 0, (struct sockaddr *) &from, &length) < 0)
         cerr << "ERROR on recvfrom." << endl;
 
