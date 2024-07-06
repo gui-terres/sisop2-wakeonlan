@@ -4,6 +4,7 @@ services:
   manager:
     build: .
     container_name: manager
+    hostname: manager
     command: ["/app/main", "1"]
     networks:
       lan:
@@ -12,18 +13,20 @@ services:
   participant1:
     build: .
     container_name: participant1
+    hostname: participant1
     command: ["/app/main", "2"]
     networks:
       lan:
         ipv4_address: 172.18.0.3
 
-  participant2:
-    build: .
-    container_name: participant2
-    command: ["/app/main", "2"]
-    networks:
-      lan:
-        ipv4_address: 172.18.0.4
+  # participant2:
+  #   build: .
+  #   container_name: participant2
+  #   hostname: participant2
+  #   command: ["/app/main", "2"]
+  #   networks:
+  #     lan:
+  #       ipv4_address: 172.18.0.4
 
 networks:
   lan:

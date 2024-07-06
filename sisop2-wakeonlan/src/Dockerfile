@@ -11,7 +11,6 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     net-tools \
     vim \
-    ntp \
     systemd \ 
     systemd-sysv
 
@@ -28,9 +27,6 @@ COPY subsystems/discovery/discovery.hpp /app/subsystems/discovery/
 COPY subsystems/interface/interface.cpp /app/subsystems/interface/
 COPY subsystems/interface/interface.hpp /app/subsystems/interface/
 
-# Configure a sincronização de tempo (substituto para systemd-timesyncd)
-RUN service ntp start
-
 # Compile o projeto usando o Makefile
 RUN make
 
@@ -38,4 +34,4 @@ RUN make
 RUN ls -l /app
 
 # Comando padrão
-CMD ["/lib/systemd/systemd"]
+CMD ["bash"]
