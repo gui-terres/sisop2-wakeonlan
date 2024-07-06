@@ -144,12 +144,12 @@ int Client::sendSocket(int argc, const char *serverHostname) {
     getHostname(buffer, BUFFER_SIZE, pcData.hostname);
     getIpAddress(pcData.ipAddress);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-    getStatus(pcData.status);
+    // getStatus(pcData.status);
 
     cout << "Hostname: " << pcData.hostname << endl;
     cout << "IP Address: " << pcData.ipAddress << endl;
     cout << "Mac Address: " << pcData.macAddress << endl;
-    cout << "Status: " << pcData.status << endl;
+    // cout << "Status: " << pcData.status << endl;
 
     /** Uncomment if necessary **/
     // printf("Enter the message: ");
@@ -158,6 +158,9 @@ int Client::sendSocket(int argc, const char *serverHostname) {
 
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in)) < 0)
         cerr << "ERROR on sendto." << endl;
+
+    cout << "Size: " << sizeof(pcData) << endl;
+    cout << "Sent" << endl;
     
     struct sockaddr_in from;
     unsigned int length = sizeof(struct sockaddr_in);

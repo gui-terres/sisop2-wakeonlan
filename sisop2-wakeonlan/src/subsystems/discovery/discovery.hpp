@@ -18,7 +18,7 @@ namespace {
         std::string hostname;
         std::string ipAddress;
         char macAddress[MAC_ADDRESS_SIZE];
-        Status status;
+        // Status status;
     };
 
     Status intToStatus(int value) {
