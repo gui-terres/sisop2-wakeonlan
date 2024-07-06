@@ -41,7 +41,7 @@ int Client::getIpAddress(string &ipAddress) {
 
         while(tempInterface != NULL) {
             if(tempInterface->ifa_addr->sa_family == AF_INET) {
-                if(strcmp(tempInterface->ifa_name, "eth0")){
+                if(strcmp(tempInterface->ifa_name, "eth0") == 0){
                     ipAddress=inet_ntoa(((struct sockaddr_in*)tempInterface->ifa_addr)->sin_addr);
                 }
             }
@@ -76,6 +76,7 @@ int Client::getMacAddress(int sockfd, char *macAddress, size_t size) {
 // TODO: Check if it's correct - probably not
 int Client::getStatus(Status &status) {
     FILE* fp = popen("systemctl is-active systemd-timesyncd.service", "r");
+    // FILE* fp = popen("service systemd-timesyncd status", "r");
     if (!fp) {
         std::cerr << "Failed to open power status file." << std::endl;
         return -1;
@@ -86,6 +87,7 @@ int Client::getStatus(Status &status) {
         pclose(fp);
         // Check if the service is active
         if (std::string(result).find("active") != std::string::npos) {
+        // if (std::string(result).find("Active: active (running)") != std::string::npos) {
             status = Status::AWAKEN;
         } else {
             status = Status::ASLEEP;

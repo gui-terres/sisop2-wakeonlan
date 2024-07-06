@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  manager:
+    build: .
+    container_name: manager
+    command: ["/app/main", "1"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.2
+
+  participant1:
+    build: .
+    container_name: participant1
+    command: ["/app/main", "2"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.3
+
+  participant2:
+    build: .
+    container_name: participant2
+    command: ["/app/main", "2"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.4
+
+networks:
+  lan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
