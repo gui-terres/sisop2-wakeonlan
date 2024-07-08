@@ -16,10 +16,10 @@
 
 using namespace std;
 
-// Variáveis globais
+//MONITORAMENTO
 std::vector<DiscoveredData> discoveredClients; // Lista de dados descobertos
 std::mutex mtx; // Mutex para sincronização de acesso à lista
-
+//MONITORAMENTO
 int Server::requestSleepStatus(const char *ipAddress, RequestData request, Status &status) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {

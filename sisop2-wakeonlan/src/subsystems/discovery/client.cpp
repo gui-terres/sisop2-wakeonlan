@@ -164,6 +164,8 @@ int Client::sendSocket(int argc, const char *serverHostname, Status status) {
     return 0;
 }
 
+
+//MONITORAMENTO
 void Client::waitForRequests(Status status) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {

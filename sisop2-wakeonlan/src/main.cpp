@@ -25,6 +25,7 @@ void requestParticipantsSleepStatus(Server &server) {
     }
 }
 
+//GERENCIAMENTO - sem WakeOnLan
 void displayDiscoveredClients(Server &server) {
     while (true) {
         this_thread::sleep_for(chrono::seconds(5));
@@ -60,11 +61,11 @@ int main(int argc, char **argv) {
         Server server;
 
         thread t1(runSendSocket, ref(server));
-        // thread t2(requestParticipantsSleepStatus, ref(server));
+        thread t2(requestParticipantsSleepStatus, ref(server));
         thread t3(displayDiscoveredClients, ref(server));
 
         t1.join();
-        // t2.join();
+        t2.join();
         t3.join();
 
         return 0;

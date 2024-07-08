@@ -48,7 +48,7 @@ private:
     int getStatus(Status &status);
 public:
     int sendSocket(int argc, const char *leaderHostname, Status status);
-    void waitForRequests(Status status) ;
+    void waitForRequests(Status status);
 };
 
 extern std::vector<DiscoveredData> discoveredClients;
