@@ -12,21 +12,21 @@ services:
     build: .
     container_name: participant1
     hostname: participant1
-    command: ["/app/main", "2"]
+    command: ["/app/main", "2", "AWAKEN"]
     networks:
       lan:
         ipv4_address: 172.18.0.3
     depends_on:
       - manager
 
-  # participant2:
-  #   build: .
-  #   container_name: participant2
-  #   hostname: participant2
-  #   command: ["/app/main", "2"]
-  #   networks:
-  #     lan:
-  #       ipv4_address: 172.18.0.4
+  participant2:
+    build: .
+    container_name: participant2
+    hostname: participant2
+    command: ["/app/main", "2", "ASLEEP"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.4
 
 networks:
   lan:

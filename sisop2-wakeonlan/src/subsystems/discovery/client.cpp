@@ -79,32 +79,35 @@ int Client::getMacAddress(int sockfd, char *macAddress, size_t size) {
 }
 
 int Client::getStatus(Status &status) {
-    FILE* fp = popen("systemctl is-active systemd-timesyncd.service", "r");
-    // FILE* fp = popen("service systemd-timesyncd status", "r");
-    if (!fp) {
-        std::cerr << "Failed to open power status file." << std::endl;
-        return -1;
-    }
+    // FILE* fp = popen("systemctl is-active systemd-timesyncd.service", "r");
+    // // FILE* fp = popen("service systemd-timesyncd status", "r");
+    // if (!fp) {
+    //     std::cerr << "Failed to open power status file." << std::endl;
+    //     return -1;
+    // }
 
-    char result[10];
-    if (fgets(result, sizeof(result), fp)) {
-        pclose(fp);
-        // Check if the service is active
-        if (std::string(result).find("active") != std::string::npos) {
-            status = Status::AWAKEN;
-        } else {
-            status = Status::ASLEEP;
-        }
+    // char result[10];
+    // if (fgets(result, sizeof(result), fp)) {
+    //     pclose(fp);
+    //     // Check if the service is active
+    //     if (std::string(result).find("active") != std::string::npos) {
+    //         status = Status::AWAKEN;
+    //     } else {
+    //         status = Status::ASLEEP;
+    //     }
 
-        return 0;
-    } else {
-        std::cerr << "Failed to read command output." << std::endl;
-        pclose(fp);
-        return -1;
-    }
+    //     return 0;
+    // } else {
+    //     std::cerr << "Failed to read command output." << std::endl;
+    //     pclose(fp);
+    //     return -1;
+    // }
+
+    //não fazendo nada, só ficando com o valor original
+    return 0;
 }
 
-int Client::sendSocket(int argc, const char *serverHostname) {
+int Client::sendSocket(int argc, const char *serverHostname, Status status) {
     // serverHostname not provided
     if (argc < 2) {
         cerr << "Usage " << serverHostname << " hostname." << endl;
@@ -124,7 +127,7 @@ int Client::sendSocket(int argc, const char *serverHostname) {
 
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;     
-    serv_addr.sin_port = htons(SERVER_PORT);    
+    serv_addr.sin_port = htons(PORT_S);    
     serv_addr.sin_addr = *((struct in_addr *) server -> h_addr);
     bzero(&(serv_addr.sin_zero), 8);  
 
@@ -134,7 +137,7 @@ int Client::sendSocket(int argc, const char *serverHostname) {
     getHostname(buffer, BUFFER_SIZE, pcData);
     getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-    getStatus(pcData.status);
+    pcData.status = status;
 
     cout << "Hostname: " << pcData.hostname << endl;
     cout << "IP Address: " << pcData.ipAddress << endl;
@@ -159,4 +162,47 @@ int Client::sendSocket(int argc, const char *serverHostname) {
     
     close(sockfd);
     return 0;
+}
+
+void Client::waitForRequests(Status status) {
+    int sockfd;
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+        cerr << "ERROR opening socket." << endl;
+        return;
+    }
+
+    printf("esperando por requests\n");
+
+    struct sockaddr_in client_addr;
+    memset(&client_addr, 0, sizeof(client_addr));
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_port = htons(PORT);
+    client_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(client_addr.sin_zero), 8);
+
+    if (bind(sockfd, (struct sockaddr *) &client_addr, sizeof(struct sockaddr)) < 0) {
+        cerr << "ERROR on binding socket." << endl;
+        close(sockfd);
+        return;
+    }
+
+    while (true) {
+        RequestData request;
+        struct sockaddr_in from;
+        socklen_t fromlen = sizeof(from);
+        ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *) &from, &fromlen);
+        if (bytesReceived < 0) {
+            cerr << "ERROR on recvfrom." << endl;
+            continue;
+        }
+
+        printf("recebi algo\n");
+
+        if (request.request == Request::SLEEP_STATUS) {
+            //retornar o status
+            sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *) &from, fromlen);
+        }
+    }
+
+    close(sockfd);
 }
