@@ -142,3 +142,29 @@ void processInput(char input, int &selectedButton, bool isArrowKey) {
         }
     }
 }
+
+void showData(){
+
+    std::vector<info> hosts = {
+        {"host1", "01:01:01:01:01:01", "1.1.1.1", "awaken"},
+        {"host2", "02:02:02:02:02:02", "1.1.1.2", "asleep"},
+        {"host3", "03:03:03:03:03:03", "1.1.1.3", "awaken"}
+    };
+
+
+    std::cout << std::endl;
+    std::cout << " _____________________________________________________" << std::endl;
+    std::cout << "|          |                   |             |        |" << std::endl;
+    std::cout << "| Hostname |   Endereço MAC    | Endereço IP | Status |" << std::endl;
+    std::cout << "|__________|___________________|_____________|________|" << std::endl;
+    for (const auto& host : hosts) {
+        std::cout << "|          |                   |             |        |" << std::endl;
+        std::cout << "| " << std::setw(8) << host.hostname
+                  << " | " << std::setw(17) << host.macAddress
+                  << " | " << std::setw(11) << host.ipAddress
+                  << " | " << std::setw(6) << host.status
+                  << " |" << std::endl;
+        std::cout << "|__________|___________________|_____________|________|" << std::endl;
+    }
+    std::cout << std::endl;
+}

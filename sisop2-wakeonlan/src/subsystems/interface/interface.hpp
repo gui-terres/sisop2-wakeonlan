@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <cstdlib> // Para a função exit()
 #include <unistd.h>
+#include <vector>
 
 #define NUM_BUTTONS 4
 #define BUTTON_SIZE 20
@@ -18,6 +19,13 @@ struct Button {
     // Construtor para inicializar o botão
     Button(const std::string& lbl = "")
         : label(lbl) {}
+};
+
+struct info {
+    std::string hostname;
+    std::string macAddress;
+    std::string ipAddress;
+    std::string status;
 };
 
 // Função para inicializar os botões
@@ -46,5 +54,7 @@ void processInput(char input, int &selectedButton, bool isArrowKey);
 
 // Função para verificar se o caractere é uma seta do teclado
 bool isArrowKey(char input);
+
+void showData();
 
 #endif // INTERFACE_HPP

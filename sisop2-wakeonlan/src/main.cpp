@@ -63,7 +63,8 @@ int main(int argc, char **argv) {
             break;
         }
         case 2: {
-            cout << "Client mode" << endl;
+            //cout << "Client mode" << endl;
+            showData();
             Client client;
             client.sendSocket(argc, argv[1]);
             break;
