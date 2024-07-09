@@ -60,6 +60,23 @@ void waitForRequests(Client &client)
     client.waitForRequests();
 }
 
+void sendWoLPacket(Server &server)
+{
+    // this_thread::sleep_for(chrono::seconds(3));
+    while (true)
+    {
+
+        for (DiscoveredData &client : discoveredClients)
+        {
+            if ((strcmp(client.hostname, "s-67-101-15") == 0))
+            {
+                cout << "tchaau" << endl;
+                server.sendWoLPacket(client);
+            }
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -74,12 +91,14 @@ int main(int argc, char **argv)
         Server server;
 
         thread t1(runSendSocket, ref(server));
-        thread t2(requestParticipantsSleepStatus, ref(server));
-        thread t3(displayDiscoveredClients, ref(server));
+        // thread t2(requestParticipantsSleepStatus, ref(server));
+        // thread t3(displayDiscoveredClients, ref(server));
+        thread t4(sendWoLPacket, ref(server));
 
         t1.join();
-        t2.join();
-        t3.join();
+        // t2.join();
+        // t3.join();
+        t4.join();
 
         return 0;
     }

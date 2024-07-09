@@ -43,6 +43,7 @@ public:
     int sendSocket();
     int requestSleepStatus(const char *hostname, RequestData request, Status &status);
     std::vector<DiscoveredData> getDiscoveredClients(); // Função para retornar a lista de clientes descobertos
+    int sendWoLPacket(DiscoveredData &client);
 };
 
 class Client
