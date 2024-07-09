@@ -50,14 +50,14 @@ void displayDiscoveredClients(Server &server)
     }
 }
 
-void searchForManager(Client &client, int argc, Status status)
+void searchForManager(Client &client, int argc)
 {
-    client.sendSocket(argc, "s-67-101-12", status);
+    client.sendSocket(argc, "s-67-101-12");
 }
 
-void waitForRequests(Client &client, Status status)
+void waitForRequests(Client &client)
 {
-    client.waitForRequests(status);
+    client.waitForRequests();
 }
 
 int main(int argc, char **argv)
@@ -87,19 +87,19 @@ int main(int argc, char **argv)
     {
         cout << "Client mode" << endl;
         Client client;
-        Status status;
+        // Status status;
 
-        if (strcmp(argv[2], "AWAKEN") == 0)
-        {
-            status = Status::AWAKEN;
-        }
-        else
-        {
-            status = Status::ASLEEP;
-        }
+        // if (strcmp(argv[2], "AWAKEN") == 0)
+        // {
+        //     status = Status::AWAKEN;
+        // }
+        // else
+        // {
+        //     status = Status::ASLEEP;
+        // }
 
-        thread t3(searchForManager, ref(client), argc, status);
-        thread t4(waitForRequests, ref(client), status);
+        thread t3(searchForManager, ref(client), argc);
+        thread t4(waitForRequests, ref(client));
 
         t3.join();
         t4.join();
