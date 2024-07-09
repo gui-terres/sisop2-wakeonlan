@@ -5,47 +5,54 @@
 #include <vector>
 #include <mutex>
 
-#define PORT 4000
-#define PORT_S 4001
+#define PORT 55001
+#define PORT_S 55002
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
 
 using std::string;
 
-enum Status {
+enum Status
+{
     ASLEEP,
     AWAKEN
 };
 
-enum Request {
+enum Request
+{
     SLEEP_STATUS
 };
 
-struct DiscoveredData {
+struct DiscoveredData
+{
     char hostname[MAX_HOSTNAME_SIZE];
     char ipAddress[IP_ADDRESS_SIZE];
     char macAddress[MAC_ADDRESS_SIZE];
     Status status;
 };
 
-struct RequestData {
+struct RequestData
+{
     Request request;
 };
 
-class Server {
+class Server
+{
 public:
     int sendSocket();
     int requestSleepStatus(const char *hostname, RequestData request, Status &status);
     std::vector<DiscoveredData> getDiscoveredClients(); // Função para retornar a lista de clientes descobertos
 };
 
-class Client {
+class Client
+{
 private:
     int getHostname(char *buffer, size_t bufferSize, DiscoveredData &hostname);
     int getIpAddress(DiscoveredData &data);
     int getMacAddress(int sockfd, char *macAddress, size_t size);
     int getStatus(Status &status);
+
 public:
     int sendSocket(int argc, const char *leaderHostname, Status status);
     void waitForRequests(Status status);
