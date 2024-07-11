@@ -135,22 +135,20 @@ int Client::sendSocket(int argc, const char *serverHostname /*Status status*/)
         exit(0);
     }
 
-    struct hostent *server;
-    server = gethostbyname(serverHostname);
-    if (server == NULL)
-    {
-        cerr << "ERROR no such host." << endl;
-        exit(0);
-    }
-
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
         cerr << "ERROR opening socket." << endl;
 
+    const int optval{1};
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
+        throw std::runtime_error("Failed to set socket options");
+    }
+
+
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT_S);
-    serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+    serv_addr.sin_addr.s_addr = inet_addr(BROADCAST_ADDR);
     bzero(&(serv_addr.sin_zero), 8);
 
     char buffer[BUFFER_SIZE];
