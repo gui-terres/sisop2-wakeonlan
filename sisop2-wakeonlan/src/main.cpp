@@ -8,7 +8,7 @@ using namespace std;
 
 void runSendSocket(Server &server)
 {
-    server.sendSocket();
+    server.sendSocket(BROADCAST_ADDR);
 }
 
 void requestParticipantsSleepStatus(Server &server)

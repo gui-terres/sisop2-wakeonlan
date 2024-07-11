@@ -10,6 +10,7 @@
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
+#define BROADCAST_ADDR "143.54.55.63"
 
 using std::string;
 
@@ -40,7 +41,7 @@ struct RequestData
 class Server
 {
 public:
-    int sendSocket();
+    int sendSocket(const char* addr);
     int requestSleepStatus(const char *hostname, RequestData request, Status &status);
     std::vector<DiscoveredData> getDiscoveredClients(); // Função para retornar a lista de clientes descobertos
     int sendWoLPacket(DiscoveredData &client);

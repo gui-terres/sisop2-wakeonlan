@@ -72,7 +72,7 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     return 0;
 }
 
-int Server::sendSocket()
+int Server::sendSocket(const char* addr = BROADCAST_ADDR)
 {
     int sockfd;
 
@@ -82,7 +82,7 @@ int Server::sendSocket()
     struct sockaddr_in participant_addr;
     participant_addr.sin_family = AF_INET;
     participant_addr.sin_port = htons(PORT_S);
-    participant_addr.sin_addr.s_addr = INADDR_ANY;
+    participant_addr.sin_addr.s_addr = inet_addr(addr);
     bzero(&(participant_addr.sin_zero), 8);
 
     if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0)
@@ -205,4 +205,8 @@ int Server::sendWoLPacket(DiscoveredData &client)
 
     close(sockfd);
     return 0;
+}
+
+void sendBroadcastSocket() {
+
 }
