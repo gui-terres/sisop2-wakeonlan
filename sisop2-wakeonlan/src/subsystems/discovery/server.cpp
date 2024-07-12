@@ -67,26 +67,34 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     status = responseStatus;
     close(sockfd);
     return 0;
-
-    close(sockfd);
-    return 0;
 }
 
 int Server::sendSocket(const char* addr = BROADCAST_ADDR)
 {
     int sockfd;
 
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
+        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+    }
+
+    // Permitir pacotes de broadcast
+    int broadcastPermission = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcastPermission, sizeof(broadcastPermission)) < 0) {
+        cerr << "ERROR setting broadcast permission." << endl;
+        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+    }
 
     struct sockaddr_in participant_addr;
     participant_addr.sin_family = AF_INET;
     participant_addr.sin_port = htons(PORT_S);
-    participant_addr.sin_addr.s_addr = inet_addr(addr);
+    participant_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Bind ao endereço local
     bzero(&(participant_addr.sin_zero), 8);
 
-    if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0)
+    if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
         cerr << "ERROR on binding socket." << endl;
+        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+    }
 
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);

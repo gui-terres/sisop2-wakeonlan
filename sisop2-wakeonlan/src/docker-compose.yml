@@ -23,11 +23,13 @@ services:
     build: .
     container_name: participant2
     hostname: participant2
-    command: ["/app/main", "2", "ASLEEP"]
+    command: ["/app/main", "2", "AWAKEN"]
     networks:
       lan:
         ipv4_address: 172.18.0.4
-
+    depends_on:
+      - manager
+      
 networks:
   lan:
     driver: bridge

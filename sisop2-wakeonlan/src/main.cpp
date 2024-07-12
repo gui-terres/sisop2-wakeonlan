@@ -37,27 +37,29 @@ void displayDiscoveredClients(Server &server)
     {
         this_thread::sleep_for(chrono::seconds(5));
 
-        cout << "Printing Clients:" << endl;
-        cout << "----------------------------" << endl;
-        for (const auto &client : discoveredClients)
-        {
-            cout << "Hostname: " << client.hostname << endl;
-            cout << "IP Address: " << client.ipAddress << endl;
-            cout << "MAC Address: " << client.macAddress << endl;
-            cout << "____________" << endl;
+        if (!discoveredClients.empty()){
+            cout << "Printing Clients:" << endl;
+            cout << "----------------------------" << endl;
+            for (const auto &client : discoveredClients)
+            {
+                cout << "Hostname: " << client.hostname << endl;
+                cout << "IP Address: " << client.ipAddress << endl;
+                cout << "MAC Address: " << client.macAddress << endl;
+                cout << "____________" << endl;
+            }
+            cout << "----------------------------" << endl;
         }
-        cout << "----------------------------" << endl;
     }
 }
 
-void searchForManager(Client &client, int argc)
+void searchForManager(Client &client, int argc, Status status)
 {
-    client.sendSocket(argc, "s-67-101-12");
+    client.sendSocket(argc, status);
 }
 
-void waitForRequests(Client &client)
+void waitForRequests(Client &client, Status status)
 {
-    client.waitForRequests();
+    client.waitForRequests(status);
 }
 
 void sendWoLPacket(Server &server)
@@ -91,14 +93,14 @@ int main(int argc, char **argv)
         Server server;
 
         thread t1(runSendSocket, ref(server));
-        // thread t2(requestParticipantsSleepStatus, ref(server));
-        // thread t3(displayDiscoveredClients, ref(server));
-        thread t4(sendWoLPacket, ref(server));
+        thread t2(requestParticipantsSleepStatus, ref(server));
+        thread t3(displayDiscoveredClients, ref(server));
+        // thread t4(sendWoLPacket, ref(server));
 
         t1.join();
         // t2.join();
-        // t3.join();
-        t4.join();
+        t3.join();
+        // t4.join();
 
         return 0;
     }
@@ -106,19 +108,19 @@ int main(int argc, char **argv)
     {
         cout << "Client mode" << endl;
         Client client;
-        // Status status;
+        Status status;
 
-        // if (strcmp(argv[2], "AWAKEN") == 0)
-        // {
-        //     status = Status::AWAKEN;
-        // }
-        // else
-        // {
-        //     status = Status::ASLEEP;
-        // }
+        if (strcmp(argv[2], "AWAKEN") == 0)
+        {
+            status = Status::AWAKEN;
+        }
+        else
+        {
+            status = Status::ASLEEP;
+        }
 
-        thread t3(searchForManager, ref(client), argc);
-        thread t4(waitForRequests, ref(client));
+        thread t3(searchForManager, ref(client), argc, status);
+        thread t4(waitForRequests, ref(client), status);
 
         t3.join();
         t4.join();

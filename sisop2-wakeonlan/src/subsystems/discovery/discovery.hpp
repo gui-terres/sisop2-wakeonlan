@@ -5,12 +5,12 @@
 #include <vector>
 #include <mutex>
 
-#define PORT 55001
-#define PORT_S 55002
+#define PORT 5000
+#define PORT_S 5001
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
-#define BROADCAST_ADDR "143.54.55.63"
+#define BROADCAST_ADDR "255.255.255.255"
 
 using std::string;
 
@@ -56,8 +56,8 @@ private:
     int getStatus(Status &status);
 
 public:
-    int sendSocket(int argc, const char *leaderHostname);
-    void waitForRequests();
+    int sendSocket(int argc, Status status);
+    void waitForRequests(Status status);
 };
 
 extern std::vector<DiscoveredData> discoveredClients;

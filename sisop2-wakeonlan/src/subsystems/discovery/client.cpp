@@ -126,15 +126,8 @@ int Client::getStatus(Status &status)
     return 0;
 }
 
-int Client::sendSocket(int argc, const char *serverHostname /*Status status*/)
+int Client::sendSocket(int argc, Status status)
 {
-    // serverHostname not provided
-    if (argc < 2)
-    {
-        cerr << "Usage " << serverHostname << " hostname." << endl;
-        exit(0);
-    }
-
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
         cerr << "ERROR opening socket." << endl;
@@ -144,6 +137,16 @@ int Client::sendSocket(int argc, const char *serverHostname /*Status status*/)
         throw std::runtime_error("Failed to set socket options");
     }
 
+    struct sockaddr_in participant_addr;
+    participant_addr.sin_family = AF_INET;
+    participant_addr.sin_port = htons(PORT_S);
+    participant_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Bind ao endereço local
+    bzero(&(participant_addr.sin_zero), 8);
+
+    if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
+        cerr << "ERROR on binding socket." << endl;
+        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+    }
 
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
@@ -157,8 +160,8 @@ int Client::sendSocket(int argc, const char *serverHostname /*Status status*/)
     getHostname(buffer, BUFFER_SIZE, pcData);
     getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-    getStatus(pcData.status);
-    // pcData.status = status;
+    // getStatus(pcData.status);
+    pcData.status = status;
 
     cout << "Hostname: " << pcData.hostname << endl;
     cout << "IP Address: " << pcData.ipAddress << endl;
@@ -186,7 +189,7 @@ int Client::sendSocket(int argc, const char *serverHostname /*Status status*/)
 }
 
 // MONITORAMENTO
-void Client::waitForRequests(/*Status status*/)
+void Client::waitForRequests(Status status)
 {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
@@ -227,8 +230,8 @@ void Client::waitForRequests(/*Status status*/)
 
         if (request.request == Request::SLEEP_STATUS)
         {
-            Status status;
-            getStatus(status);
+            // Status status;
+            // getStatus(status);
             // retornar o status
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
         }
