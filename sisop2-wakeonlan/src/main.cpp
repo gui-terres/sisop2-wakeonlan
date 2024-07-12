@@ -79,57 +79,97 @@ void sendWoLPacket(Server &server)
     }
 }
 
+void runManagerMode() {
+    cout << "Manager mode" << endl;
+    Server server;
+
+    thread t1(runSendSocket, ref(server));
+    thread t2(requestParticipantsSleepStatus, ref(server));
+    thread t3(displayDiscoveredClients, ref(server));
+    // thread t4(sendWoLPacket, ref(server));
+
+    t1.join();
+    // t2.join();
+    t3.join();
+    // t4.join();
+}
+
+void runClientMode(int argc) {
+    cout << "Client mode" << endl;
+    Client client;
+    Status status;
+
+    thread t3(searchForManager, ref(client), argc, status);
+    thread t4(waitForRequests, ref(client), status);
+
+    t3.join();
+    t4.join();
+}
+
 int main(int argc, char **argv)
 {
-    if (argc < 2)
-    {
+    if (argc > 2) {
         cout << "Invalid initialization!" << endl;
         return 1;
     }
 
-    if (strcmp(argv[1], "1") == 0)
-    {
-        cout << "Manager mode" << endl;
-        Server server;
-
-        thread t1(runSendSocket, ref(server));
-        thread t2(requestParticipantsSleepStatus, ref(server));
-        thread t3(displayDiscoveredClients, ref(server));
-        // thread t4(sendWoLPacket, ref(server));
-
-        t1.join();
-        // t2.join();
-        t3.join();
-        // t4.join();
-
+    if (argc > 1) {
+        if (!strcmp(argv[1], "manager")) {
+            runManagerMode();
+            return 0;
+        } else {
+            cout << "ERROR: Invalid argument initialization!" << endl;
+            cout << argv[1] << " isn't a valid mode." << endl;
+            return 1;
+        }
+    } else {
+        runClientMode(argc);
         return 0;
     }
-    else if (strcmp(argv[1], "2") == 0)
-    {
-        cout << "Client mode" << endl;
-        Client client;
-        Status status;
 
-        if (strcmp(argv[2], "AWAKEN") == 0)
-        {
-            status = Status::AWAKEN;
-        }
-        else
-        {
-            status = Status::ASLEEP;
-        }
+    // if (strcmp(argv[1], "1") == 0)
+    // {
+    //     cout << "Manager mode" << endl;
+    //     Server server;
 
-        thread t3(searchForManager, ref(client), argc, status);
-        thread t4(waitForRequests, ref(client), status);
+    //     thread t1(runSendSocket, ref(server));
+    //     thread t2(requestParticipantsSleepStatus, ref(server));
+    //     thread t3(displayDiscoveredClients, ref(server));
+    //     // thread t4(sendWoLPacket, ref(server));
 
-        t3.join();
-        t4.join();
+    //     t1.join();
+    //     // t2.join();
+    //     t3.join();
+    //     // t4.join();
 
-        return 0;
-    }
-    else
-    {
-        cout << "Invalid initialization!" << endl;
-        return 1;
-    }
+    //     return 0;
+    // }
+    // else if (strcmp(argv[1], "2") == 0)
+    // {
+    //     cout << "Client mode" << endl;
+    //     Client client;
+    //     Status status;
+
+    //     if (strcmp(argv[2], "AWAKEN") == 0)
+    //     {
+    //         status = Status::AWAKEN;
+    //     }
+    //     else
+    //     {
+    //         status = Status::ASLEEP;
+    //     }
+
+    //     thread t3(searchForManager, ref(client), argc, status);
+    //     thread t4(waitForRequests, ref(client), status);
+
+    //     t3.join();
+    //     t4.join();
+
+    //     return 0;
+    // }
+    // else
+    // {
+    //     cout << "Invalid initialization!" << endl;
+    //     return 1;
+    // }
 }

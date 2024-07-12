@@ -3,7 +3,7 @@ services:
     build: .
     container_name: manager
     hostname: manager
-    command: ["/app/main", "1"]
+    command: ["/app/main", "manager"]
     networks:
       lan:
         ipv4_address: 172.18.0.2
@@ -12,7 +12,7 @@ services:
     build: .
     container_name: participant1
     hostname: participant1
-    command: ["/app/main", "2", "AWAKEN"]
+    command: ["/app/main"]
     networks:
       lan:
         ipv4_address: 172.18.0.3
@@ -23,7 +23,7 @@ services:
     build: .
     container_name: participant2
     hostname: participant2
-    command: ["/app/main", "2", "AWAKEN"]
+    command: ["/app/main"]
     networks:
       lan:
         ipv4_address: 172.18.0.4
