@@ -56,23 +56,20 @@ public:
     int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
     std::vector<DiscoveredData> getDiscoveredClients(); // Função para retornar a lista de clientes descobertos
     int sendWoLPacket(DiscoveredData &client);
-    void waitForRequests();
-    int requestParticipantData(const char *ipAddress);
+    void waitForRequests(Server &server);
+    DiscoveredData* requestParticipantData(const char *ipAddress);
 };
 
 class Client : public Station {
-// private:
-//     int getHostname(char *buffer, size_t bufferSize, DiscoveredData &hostname);
-//     int getIpAddress(DiscoveredData &data);
-//     int getMacAddress(int sockfd, char *macAddress, size_t size);
-//     int getStatus(Status &status);
-
+private:
+    // 
 public:
+    DiscoveredData managerInfo;
+
     int sendSocket(int argc, Status status);
     void waitForRequests(Status status);
     int sendExitRequest(const char *ipAddress);
     void waitForParticipantDataRequests();
-
 };
 
 extern std::vector<DiscoveredData> discoveredClients;

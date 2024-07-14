@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <vector>
 #include <sstream>
+#include <algorithm>
 
 #include "discovery.hpp"
 
@@ -234,7 +235,7 @@ int Server::sendWoLPacket(DiscoveredData &client)
     return 0;
 }
 
-void Server::waitForRequests()
+void Server::waitForRequests(Server &server)
 {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
@@ -280,27 +281,53 @@ void Server::waitForRequests()
             // retornar o status
             // sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
             cout << "EXIT" << endl;
+
+            char ipAddress[INET_ADDRSTRLEN];
+            if (inet_ntop(AF_INET, &from.sin_addr, ipAddress, sizeof(ipAddress)) == nullptr) {
+                cerr << "ERROR converting address." << endl;
+                close(sockfd);                
+            } else {
+                cout << "Received request from IP: " << ipAddress << endl;
+
+                DiscoveredData* data = server.requestParticipantData(ipAddress);
+
+                if (data != nullptr) {
+                    // A chamada foi bem-sucedida, use os dados recebidos
+                    auto it = std::remove_if(discoveredClients.begin(), discoveredClients.end(),
+                                            [ipAddress](const DiscoveredData& data) {
+                                                return strcmp(data.ipAddress, ipAddress) == 0;
+                                            });
+                    discoveredClients.erase(it, discoveredClients.end());
+
+                    // Libere a memória alocada
+                    delete data;
+                } else {
+                    // Houve um erro ao solicitar os dados
+                    cerr << "Failed to retrieve participant data." << endl;
+                }
+            }
+
         }
     }
 
     close(sockfd);
 }
 
-int Server::requestParticipantData(const char *ipAddress) {
+DiscoveredData* Server::requestParticipantData(const char *ipAddress) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
-        return -1;
+        return nullptr;
     }
 
     // Definir tempo limite de 5 segundos para recebimento
     struct timeval tv;
-    tv.tv_sec = 1;
+    tv.tv_sec = 5;
     tv.tv_usec = 0;
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
         cerr << "ERROR setting socket timeout." << endl;
         close(sockfd);
-        return -1;
+        return nullptr;
     }
 
     struct sockaddr_in recipient_addr;
@@ -310,7 +337,7 @@ int Server::requestParticipantData(const char *ipAddress) {
     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
         cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
-        return -1;
+        return nullptr;
     }
 
     RequestData req;
@@ -319,30 +346,31 @@ int Server::requestParticipantData(const char *ipAddress) {
     if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
         cerr << "ERROR sending request." << endl;
         close(sockfd);
-        return -1;
+        return nullptr;
     }
 
-    cout << "mandei msg para: " << ipAddress << endl;
+    cout << "Message sent to: " << ipAddress << endl;
 
     // Receber resposta
-    DiscoveredData receivedData;
-    memset(&receivedData, 0, sizeof(receivedData));
+    DiscoveredData* receivedData = new DiscoveredData();
+    memset(receivedData, 0, sizeof(DiscoveredData));
 
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
 
-    ssize_t bytesReceived = recvfrom(sockfd, &receivedData, sizeof(receivedData), 0, (struct sockaddr *)&cli_addr, &clilen);
-    if (bytesReceived < 0)
-    {
+    ssize_t bytesReceived = recvfrom(sockfd, receivedData, sizeof(DiscoveredData), 0, (struct sockaddr *)&cli_addr, &clilen);
+    if (bytesReceived < 0) {
         cerr << "ERROR on recvfrom." << endl;
-        return -1;
+        close(sockfd);
+        delete receivedData; // Free allocated memory
+        return nullptr;
     }
 
-    cout << "Hostname: " << receivedData.hostname << endl;
-    cout << "IP Address: " << receivedData.ipAddress << endl;
-    cout << "MAC Address: " << receivedData.macAddress << endl;
-    cout << "Status: " << receivedData.status << endl;
+    cout << "Hostname: " << receivedData->hostname << endl;
+    cout << "IP Address: " << receivedData->ipAddress << endl;
+    cout << "MAC Address: " << receivedData->macAddress << endl;
+    cout << "Status: " << receivedData->status << endl;
 
     close(sockfd);
-    return 0;
+    return receivedData;
 }

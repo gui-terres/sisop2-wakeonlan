@@ -6,16 +6,16 @@ services:
     command: ["/app/sleep_server", "manager"]
     networks:
       lan:
-        ipv4_address: 172.18.0.2
+        ipv4_address: 172.18.0.15
 
   participant1:
     build: .
     container_name: participant1
     hostname: participant1
-    command: ["/app/sleep_server"]
+    command: ["/app/sleep_server", "172.18.0.7", "."]
     networks:
       lan:
-        ipv4_address: 172.18.0.3
+        ipv4_address: 172.18.0.7
     depends_on:
       - manager
 
@@ -23,10 +23,10 @@ services:
     build: .
     container_name: participant2
     hostname: participant2
-    command: ["/app/sleep_server"]
+    command: ["/app/sleep_server", "172.18.0.12", "."]
     networks:
       lan:
-        ipv4_address: 172.18.0.4
+        ipv4_address: 172.18.0.12
     depends_on:
       - manager
       

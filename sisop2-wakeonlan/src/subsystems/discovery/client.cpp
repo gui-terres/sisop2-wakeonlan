@@ -180,7 +180,6 @@ int Client::sendSocket(int argc, Status status)
     unsigned int length = sizeof(struct sockaddr_in);
     memset(buffer, 0, sizeof(buffer));
 
-    DiscoveredData managerInfo;
     memset(&managerInfo, 0, sizeof(managerInfo));
     ssize_t k = recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&from, &length);
 

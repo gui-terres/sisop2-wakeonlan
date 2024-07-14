@@ -32,6 +32,7 @@ void displayDiscoveredClients(Server &server)
 {
     while (true) {
         this_thread::sleep_for(chrono::seconds(5));
+        cout << "tentando imprimir clientes" << endl;
 
         if (!discoveredClients.empty()) {
             cout << "Printing Clients:" << endl;
@@ -58,10 +59,16 @@ void waitForRequestsClient(Client &client, Status status)
     client.waitForRequests(status);
 }
 
-void sendExitRequest(Client &client)
+void sendExitRequest(Client &client, char *ip)
 {   
-    this_thread::sleep_for(chrono::seconds(5));
-    client.sendExitRequest("172.18.0.2");
+    this_thread::sleep_for(chrono::seconds(10));    
+    cout << ip << endl;
+
+    if (!strcmp(ip, "172.18.0.12")){ //TODO
+        client.sendExitRequest(client.managerInfo.ipAddress);      
+    } else {
+        cout << "eu estou vivo!!!!!1 (" << ip << ")" << endl;
+    }
 }
 
 void waitForParticipantDataRequests(Client &client)
@@ -71,15 +78,14 @@ void waitForParticipantDataRequests(Client &client)
 
 void waitForRequestsServer(Server &server)
 {
-    server.waitForRequests();
+    server.waitForRequests(server);
 }
 
 void requestParticipantData(Server &server)
 {   
-    while (true)
-        for (const auto &client : discoveredClients) {
-            server.requestParticipantData(client.ipAddress);
-        }
+    for (const auto &client : discoveredClients) {
+        server.requestParticipantData(client.ipAddress);
+    }
 }
 
 void sendWoLPacket(Server &server)
@@ -101,27 +107,27 @@ void runManagerMode() {
 
     thread t1(runSendSocket, ref(server));
     // thread t2(requestParticipantsSleepStatus, ref(server));
-    // thread t3(displayDiscoveredClients, ref(server));
+    thread t3(displayDiscoveredClients, ref(server));
     // thread t4(sendWoLPacket, ref(server));
     thread t5(waitForRequestsServer, ref(server));
-    thread t6(requestParticipantData, ref(server));
+    // thread t6(requestParticipantData, ref(server));
 
     t1.join();
     // t2.join();
-    // t3.join();
+    t3.join();
     // t4.join();
     t5.join();
-    t6.join();
+    // t6.join();
 }
 
-void runClientMode(int argc) {
+void runClientMode(int argc, char *ip) {
     cout << "Client mode" << endl;
     Client client;
     Status status = Status::AWAKEN;
 
     thread t3(searchForManager, ref(client), argc, status);
     thread t4(waitForRequestsClient, ref(client), status);
-    thread t5(sendExitRequest, ref(client));
+    thread t5(sendExitRequest, ref(client), ip);
     thread t6(waitForParticipantDataRequests, ref(client));
 
     t3.join();
@@ -132,12 +138,12 @@ void runClientMode(int argc) {
 
 int main(int argc, char **argv)
 {
-    if (argc > 2) {
+    if (argc > 3) {
         cout << "Invalid initialization!" << endl;
         return 1;
     }
 
-    if (argc > 1) {
+    if (argc < 3) {
         if (!strcmp(argv[1], "manager")) {
             runManagerMode();
             return 0;
@@ -147,7 +153,7 @@ int main(int argc, char **argv)
             return 1;
         }
     } else {
-        runClientMode(argc);
+        runClientMode(argc, argv[1]);
         return 0;
     }
 
