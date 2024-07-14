@@ -13,17 +13,14 @@ void runSendSocket(Server &server)
 
 void requestParticipantsSleepStatus(Server &server)
 {
-    while (true)
-    {
+    while (true) {
         this_thread::sleep_for(chrono::seconds(5));
         RequestData req;
         req.request = Request::SLEEP_STATUS;
 
-        for (const auto &client : discoveredClients)
-        {
+        for (const auto &client : discoveredClients) {
             Status status;
-            if (server.requestSleepStatus(client.ipAddress, req, status) == 0)
-            {
+            if (server.requestSleepStatus(client.ipAddress, req, status) == 0) {
                 cout << "Status do cliente " << client.ipAddress << ": " << (status == AWAKEN ? "AWAKEN" : "ASLEEP") << endl;
             }
         }
@@ -33,11 +30,10 @@ void requestParticipantsSleepStatus(Server &server)
 // GERENCIAMENTO - sem WakeOnLan
 void displayDiscoveredClients(Server &server)
 {
-    while (true)
-    {
+    while (true) {
         this_thread::sleep_for(chrono::seconds(5));
 
-        if (!discoveredClients.empty()){
+        if (!discoveredClients.empty()) {
             cout << "Printing Clients:" << endl;
             cout << "----------------------------" << endl;
             for (const auto &client : discoveredClients)
@@ -65,13 +61,9 @@ void waitForRequests(Client &client, Status status)
 void sendWoLPacket(Server &server)
 {
     // this_thread::sleep_for(chrono::seconds(3));
-    while (true)
-    {
-
-        for (DiscoveredData &client : discoveredClients)
-        {
-            if ((strcmp(client.hostname, "s-67-101-15") == 0))
-            {
+    while (true) {
+        for (DiscoveredData &client : discoveredClients) {
+            if (!strcmp(client.hostname, "s-67-101-15")) {  // Argument of command WAKEUP hostname
                 cout << "tchaau" << endl;
                 server.sendWoLPacket(client);
             }

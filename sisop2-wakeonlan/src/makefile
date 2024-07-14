@@ -15,7 +15,7 @@ TARGET = main
 
 # Compile all SOURCES files
 $(TARGET): $(SOURCES)
-	$(CC) -std=c++11 -pthread $(SOURCES) -o $(TARGET)
+	$(CC) -std=c++11 -pthread $(SOURCES) -o sleep_server
 
 # Clean generated files
 clean:
