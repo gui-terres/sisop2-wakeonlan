@@ -53,9 +53,33 @@ void searchForManager(Client &client, int argc, Status status)
     client.sendSocket(argc, status);
 }
 
-void waitForRequests(Client &client, Status status)
+void waitForRequestsClient(Client &client, Status status)
 {
     client.waitForRequests(status);
+}
+
+void sendExitRequest(Client &client)
+{   
+    this_thread::sleep_for(chrono::seconds(5));
+    client.sendExitRequest("172.18.0.2");
+}
+
+void waitForParticipantDataRequests(Client &client)
+{
+    client.waitForParticipantDataRequests();
+}
+
+void waitForRequestsServer(Server &server)
+{
+    server.waitForRequests();
+}
+
+void requestParticipantData(Server &server)
+{   
+    while (true)
+        for (const auto &client : discoveredClients) {
+            server.requestParticipantData(client.ipAddress);
+        }
 }
 
 void sendWoLPacket(Server &server)
@@ -76,14 +100,18 @@ void runManagerMode() {
     Server server;
 
     thread t1(runSendSocket, ref(server));
-    thread t2(requestParticipantsSleepStatus, ref(server));
+    // thread t2(requestParticipantsSleepStatus, ref(server));
     // thread t3(displayDiscoveredClients, ref(server));
     // thread t4(sendWoLPacket, ref(server));
+    thread t5(waitForRequestsServer, ref(server));
+    thread t6(requestParticipantData, ref(server));
 
     t1.join();
-    t2.join();
+    // t2.join();
     // t3.join();
     // t4.join();
+    t5.join();
+    t6.join();
 }
 
 void runClientMode(int argc) {
@@ -92,10 +120,14 @@ void runClientMode(int argc) {
     Status status = Status::AWAKEN;
 
     thread t3(searchForManager, ref(client), argc, status);
-    thread t4(waitForRequests, ref(client), status);
+    thread t4(waitForRequestsClient, ref(client), status);
+    thread t5(sendExitRequest, ref(client));
+    thread t6(waitForParticipantDataRequests, ref(client));
 
     t3.join();
     t4.join();
+    t5.join();
+    t6.join();
 }
 
 int main(int argc, char **argv)

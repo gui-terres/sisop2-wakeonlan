@@ -163,10 +163,10 @@ int Client::sendSocket(int argc, Status status)
     // getStatus(pcData.status);
     pcData.status = status;
 
-    cout << "Hostname: " << pcData.hostname << endl;
-    cout << "IP Address: " << pcData.ipAddress << endl;
-    cout << "Mac Address: " << pcData.macAddress << endl;
-    cout << "Status: " << ((pcData.status == 1) ? "AWAKEN" : "ASLEEP") << endl;
+    // cout << "Hostname: " << pcData.hostname << endl;
+    // cout << "IP Address: " << pcData.ipAddress << endl;
+    // cout << "Mac Address: " << pcData.macAddress << endl;
+    // cout << "Status: " << ((pcData.status == 1) ? "AWAKEN" : "ASLEEP") << endl;
 
     /** Uncomment if necessary **/
     // printf("Enter the message: ");
@@ -234,6 +234,126 @@ void Client::waitForRequests(Status status)
             // getStatus(status);
             // retornar o status
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
+        }
+    }
+
+    close(sockfd);
+}
+
+int Client::sendExitRequest(const char *ipAddress)
+{
+    int sockfd;
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+        cerr << "ERROR opening socket." << endl;
+        return -1;
+    }
+
+    // Definir tempo limite de 5 segundos para recebimento
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
+        cerr << "ERROR setting socket timeout." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+    struct sockaddr_in recipient_addr;
+    memset(&recipient_addr, 0, sizeof(recipient_addr));
+    recipient_addr.sin_family = AF_INET;
+    recipient_addr.sin_port = htons(PORT_E);
+    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
+        cerr << "ERROR invalid address/ Address not supported." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+    RequestData req;
+    req.request = Request::EXIT;
+
+    if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+        cerr << "ERROR sending request." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+    cout << "mandei msg para: " << ipAddress << endl;
+
+    // // Receber resposta
+    // struct sockaddr_in from;
+    // socklen_t fromlen = sizeof(from);
+    // Status responseStatus;
+    // ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
+    // if (bytesReceived < 0) {
+    //     if (errno == EWOULDBLOCK || errno == EAGAIN) {
+    //         cerr << "ERROR: Timeout receiving response." << endl;
+    //     } else {
+    //         cerr << "ERROR receiving response." << endl;
+    //     }
+    //     status = Status::ASLEEP; // Defina o status como ASLEEP em caso de timeout
+    //     close(sockfd);
+    //     return 0;
+    // }
+
+    // status = responseStatus;
+    close(sockfd);
+    return 0;
+}
+
+void Client::waitForParticipantDataRequests()
+{
+    int sockfd;
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+    {
+        cerr << "ERROR opening socket." << endl;
+        return;
+    }
+
+    printf("esperando por requests\n");
+
+    struct sockaddr_in client_addr;
+    memset(&client_addr, 0, sizeof(client_addr));
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_port = htons(PORT_PD);
+    client_addr.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(client_addr.sin_zero), 8);
+
+    if (bind(sockfd, (struct sockaddr *)&client_addr, sizeof(struct sockaddr)) < 0)
+    {
+        cerr << "ERROR on binding socket." << endl;
+        close(sockfd);
+        return;
+    }
+
+    while (true)
+    {
+        RequestData request;
+        struct sockaddr_in from;
+        socklen_t fromlen = sizeof(from);
+        ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
+        if (bytesReceived < 0)
+        {
+            cerr << "ERROR on recvfrom." << endl;
+            continue;
+        }
+
+        printf("recebi algo\n");
+
+        if (request.request == Request::PARTICIPANT_DATA)
+        {
+            // Status status;
+            // getStatus(status);
+            // retornar o status
+            char buffer[BUFFER_SIZE];
+
+            DiscoveredData pcData;
+            getHostname(buffer, BUFFER_SIZE, pcData);
+            getIpAddress(pcData);
+            getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
+            // getStatus(pcData.status);
+            pcData.status = Status::AWAKEN;
+
+            sendto(sockfd, &pcData, sizeof(pcData), 0, (struct sockaddr *)&from, fromlen);
         }
     }
 

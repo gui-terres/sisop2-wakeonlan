@@ -7,6 +7,8 @@
 
 #define PORT 5000
 #define PORT_S 5001
+#define PORT_E 5002
+#define PORT_PD 5003
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -22,7 +24,9 @@ enum Status
 
 enum Request
 {
-    SLEEP_STATUS
+    SLEEP_STATUS,
+    EXIT,
+    PARTICIPANT_DATA
 };
 
 struct DiscoveredData
@@ -45,6 +49,8 @@ public:
     int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
     std::vector<DiscoveredData> getDiscoveredClients(); // Função para retornar a lista de clientes descobertos
     int sendWoLPacket(DiscoveredData &client);
+    void waitForRequests();
+    int requestParticipantData(const char *ipAddress);
 };
 
 class Client
@@ -54,10 +60,12 @@ private:
     int getIpAddress(DiscoveredData &data);
     int getMacAddress(int sockfd, char *macAddress, size_t size);
     int getStatus(Status &status);
-
 public:
     int sendSocket(int argc, Status status);
     void waitForRequests(Status status);
+    int sendExitRequest(const char *ipAddress);
+    void waitForParticipantDataRequests();
+
 };
 
 extern std::vector<DiscoveredData> discoveredClients;
