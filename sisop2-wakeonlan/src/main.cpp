@@ -14,14 +14,14 @@ void runSendSocket(Server &server)
 void requestParticipantsSleepStatus(Server &server)
 {
     while (true) {
-        this_thread::sleep_for(chrono::seconds(5));
+        // this_thread::sleep_for(chrono::seconds(5));
         RequestData req;
         req.request = Request::SLEEP_STATUS;
 
         for (const auto &client : discoveredClients) {
             Status status;
             if (server.requestSleepStatus(client.ipAddress, req, status) == 0) {
-                cout << "Status do cliente " << client.ipAddress << ": " << (status == AWAKEN ? "AWAKEN" : "ASLEEP") << endl;
+                cout << "Status do cliente " << client.hostname << ": " << (status == AWAKEN ? "AWAKEN" : "ASLEEP") << endl;
             }
         }
     }
@@ -77,19 +77,19 @@ void runManagerMode() {
 
     thread t1(runSendSocket, ref(server));
     thread t2(requestParticipantsSleepStatus, ref(server));
-    thread t3(displayDiscoveredClients, ref(server));
+    // thread t3(displayDiscoveredClients, ref(server));
     // thread t4(sendWoLPacket, ref(server));
 
     t1.join();
-    // t2.join();
-    t3.join();
+    t2.join();
+    // t3.join();
     // t4.join();
 }
 
 void runClientMode(int argc) {
     cout << "Client mode" << endl;
     Client client;
-    Status status;
+    Status status = Status::AWAKEN;
 
     thread t3(searchForManager, ref(client), argc, status);
     thread t4(waitForRequests, ref(client), status);

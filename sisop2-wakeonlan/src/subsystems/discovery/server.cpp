@@ -22,13 +22,22 @@ using namespace std;
 // MONITORAMENTO
 std::vector<DiscoveredData> discoveredClients; // Lista de dados descobertos
 std::mutex mtx;                                // Mutex para sincronização de acesso à lista
+
 // MONITORAMENTO
-int Server::requestSleepStatus(const char *ipAddress, RequestData request, Status &status)
-{
+int Server::requestSleepStatus(const char *ipAddress, RequestData request, Status &status) {
     int sockfd;
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-    {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
+        return -1;
+    }
+
+    // Definir tempo limite de 5 segundos para recebimento
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
+        cerr << "ERROR setting socket timeout." << endl;
+        close(sockfd);
         return -1;
     }
 
@@ -36,15 +45,13 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     memset(&recipient_addr, 0, sizeof(recipient_addr));
     recipient_addr.sin_family = AF_INET;
     recipient_addr.sin_port = htons(PORT);
-    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0)
-    {
+    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
         cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
         return -1;
     }
 
-    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0)
-    {
+    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
         cerr << "ERROR sending request." << endl;
         close(sockfd);
         return -1;
@@ -57,11 +64,15 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     socklen_t fromlen = sizeof(from);
     Status responseStatus;
     ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
-    if (bytesReceived < 0)
-    {
-        cerr << "ERROR receiving response." << endl;
+    if (bytesReceived < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            cerr << "ERROR: Timeout receiving response." << endl;
+        } else {
+            cerr << "ERROR receiving response." << endl;
+        }
+        status = Status::ASLEEP; // Defina o status como ASLEEP em caso de timeout
         close(sockfd);
-        return -1;
+        return 0;
     }
 
     status = responseStatus;

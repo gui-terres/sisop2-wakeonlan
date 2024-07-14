@@ -42,7 +42,7 @@ class Server
 {
 public:
     int sendSocket(const char* addr);
-    int requestSleepStatus(const char *hostname, RequestData request, Status &status);
+    int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
     std::vector<DiscoveredData> getDiscoveredClients(); // Função para retornar a lista de clientes descobertos
     int sendWoLPacket(DiscoveredData &client);
 };
