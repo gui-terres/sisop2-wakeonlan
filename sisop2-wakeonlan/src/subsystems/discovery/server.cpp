@@ -134,8 +134,16 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR)
         cout << "MAC Address: " << receivedData.macAddress << endl;
         cout << "Status: " << receivedData.status << endl;
 
+        char buffer[BUFFER_SIZE];
+        DiscoveredData managerInfo;
+        memset(&managerInfo, 0, sizeof(managerInfo));
+
+        getHostname(buffer, BUFFER_SIZE, managerInfo);
+        getIpAddress(managerInfo);
+        getMacAddress(sockfd, managerInfo.macAddress, MAC_ADDRESS_SIZE);
+
         // Send socket
-        if (sendto(sockfd, "Got your message\n", 17, 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0)
+        if (sendto(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0)
             cerr << "ERROR on sendto." << endl;
     }
 

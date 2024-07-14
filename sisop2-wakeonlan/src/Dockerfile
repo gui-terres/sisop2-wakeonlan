@@ -22,6 +22,7 @@ COPY makefile /app/Makefile
 COPY main.cpp /app/
 COPY subsystems/discovery/client.cpp /app/subsystems/discovery/
 COPY subsystems/discovery/server.cpp /app/subsystems/discovery/
+COPY subsystems/discovery/station.cpp /app/subsystems/discovery/
 COPY subsystems/discovery/discovery.hpp /app/subsystems/discovery/
 # Se houver o arquivo interface.cpp, descomente a linha abaixo:
 COPY subsystems/interface/interface.cpp /app/subsystems/interface/

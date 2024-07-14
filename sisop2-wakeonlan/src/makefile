@@ -8,7 +8,7 @@ INTERFACE = $(SUBSYSTEMS)/interface
 
 # Files to be compiled
 # You can add a new file by appending its path to the SOURCES list
-SOURCES = main.cpp $(DISCOVERY)/server.cpp $(DISCOVERY)/client.cpp $(INTERFACE)/interface.cpp
+SOURCES = main.cpp $(DISCOVERY)/server.cpp $(DISCOVERY)/client.cpp $(DISCOVERY)/station.cpp $(INTERFACE)/interface.cpp
 
 # .exe name
 TARGET = main

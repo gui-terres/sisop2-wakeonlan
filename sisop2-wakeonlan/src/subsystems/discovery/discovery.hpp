@@ -38,8 +38,15 @@ struct RequestData
     Request request;
 };
 
-class Server
-{
+class Station {
+public:
+    int getHostname(char *buffer, size_t bufferSize, DiscoveredData &hostname);
+    int getIpAddress(DiscoveredData &data);
+    int getMacAddress(int sockfd, char *macAddress, size_t size);
+    int getStatus(Status &status);
+};
+
+class Server : public Station {
 public:
     int sendSocket(const char* addr);
     int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
@@ -47,13 +54,12 @@ public:
     int sendWoLPacket(DiscoveredData &client);
 };
 
-class Client
-{
-private:
-    int getHostname(char *buffer, size_t bufferSize, DiscoveredData &hostname);
-    int getIpAddress(DiscoveredData &data);
-    int getMacAddress(int sockfd, char *macAddress, size_t size);
-    int getStatus(Status &status);
+class Client : public Station {
+// private:
+//     int getHostname(char *buffer, size_t bufferSize, DiscoveredData &hostname);
+//     int getIpAddress(DiscoveredData &data);
+//     int getMacAddress(int sockfd, char *macAddress, size_t size);
+//     int getStatus(Status &status);
 
 public:
     int sendSocket(int argc, Status status);
