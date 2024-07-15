@@ -58,7 +58,7 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
         return -1;
     }
 
-    cout << "mandei msg para: " << ipAddress << endl;
+    // cout << "mandei msg para: " << ipAddress << endl;
 
     // Receber resposta
     struct sockaddr_in from;
@@ -219,17 +219,17 @@ int Server::sendWoLPacket(DiscoveredData &client)
         packet.insert(packet.end(), macBytes.begin(), macBytes.end());
     }
 
-    cout << "tchaau" << endl;
-    printHex(packet);
+    // cout << "tchaau" << endl;
+    // printHex(packet);
 
     if (sendto(sockfd, packet.data(), packet.size(), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0)
     {
-        cerr << "ERROR sending request." << endl;
+        // cerr << "ERROR sending request." << endl;
         close(sockfd);
         return -1;
     }
 
-    cout << "mandei msg para: " << client.ipAddress << endl;
+    // cout << "mandei msg para: " << client.ipAddress << endl;
 
     close(sockfd);
     return 0;
@@ -272,7 +272,7 @@ void Server::waitForRequests(Server &server)
             continue;
         }
 
-        printf("recebi algo\n");
+        // printf("recebi algo\n");
 
         if (request.request == Request::EXIT)
         {
@@ -280,31 +280,39 @@ void Server::waitForRequests(Server &server)
             // getStatus(status);
             // retornar o status
             // sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
-            cout << "EXIT" << endl;
+            // cout << "EXIT" << endl;
 
             char ipAddress[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &from.sin_addr, ipAddress, sizeof(ipAddress)) == nullptr) {
                 cerr << "ERROR converting address." << endl;
                 close(sockfd);                
             } else {
-                cout << "Received request from IP: " << ipAddress << endl;
+                // cout << "Received request from IP: " << ipAddress << endl;
 
-                DiscoveredData* data = server.requestParticipantData(ipAddress);
+                // DiscoveredData* data = server.requestParticipantData(ipAddress);
 
-                if (data != nullptr) {
-                    // A chamada foi bem-sucedida, use os dados recebidos
-                    auto it = std::remove_if(discoveredClients.begin(), discoveredClients.end(),
-                                            [ipAddress](const DiscoveredData& data) {
-                                                return strcmp(data.ipAddress, ipAddress) == 0;
-                                            });
-                    discoveredClients.erase(it, discoveredClients.end());
+                discoveredClients.erase(
+                    std::remove_if(discoveredClients.begin(), discoveredClients.end(),
+                                [ipAddress](const DiscoveredData& data) {
+                                    return strcmp(data.ipAddress, ipAddress) == 0;
+                                }),
+                    discoveredClients.end()
+                );
 
-                    // Libere a memória alocada
-                    delete data;
-                } else {
-                    // Houve um erro ao solicitar os dados
-                    cerr << "Failed to retrieve participant data." << endl;
-                }
+                // if (data != nullptr) {
+                //     // A chamada foi bem-sucedida, use os dados recebidos
+                //     auto it = std::remove_if(discoveredClients.begin(), discoveredClients.end(),
+                //                             [ipAddress](const DiscoveredData& data) {
+                //                                 return strcmp(data.ipAddress, ipAddress) == 0;
+                //                             });
+                //     discoveredClients.erase(it, discoveredClients.end());
+
+                //     // Libere a memória alocada
+                //     delete data;
+                // } else {
+                //     // Houve um erro ao solicitar os dados
+                //     cerr << "Failed to retrieve participant data." << endl;
+                // }
             }
 
         }

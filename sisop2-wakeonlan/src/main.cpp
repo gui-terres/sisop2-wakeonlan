@@ -23,24 +23,26 @@ void runSendSocket(Server &server)
 
 void requestParticipantsSleepStatus(Server &server)
 {
-    while (true) {
+    // while (true) {
         // this_thread::sleep_for(chrono::seconds(5));
-        RequestData req;
-        req.request = Request::SLEEP_STATUS;
+    RequestData req;
+    req.request = Request::SLEEP_STATUS;
 
-        for (const auto &client : discoveredClients) {
-            Status status;
-            if (server.requestSleepStatus(client.ipAddress, req, status) == 0) {
-                cout << "Status do cliente " << client.hostname << ": " << (status == AWAKEN ? "AWAKEN" : "ASLEEP") << endl;
-            }
+    for (DiscoveredData &client : discoveredClients) {
+        Status status;
+        if (server.requestSleepStatus(client.ipAddress, req, status) == 0) {
+            // cout << "Status do cliente " << client.hostname << ": " << (status == AWAKEN ? "AWAKEN" : "ASLEEP") << endl;
+            client.status = status;
         }
     }
+    // }
 }
 
 // GERENCIAMENTO - sem WakeOnLan
 void display(Server &server)
 {
     while (true) {
+        requestParticipantsSleepStatus(server);
         //cout << "tentando imprimir clientes" << endl;
         std::lock_guard<std::mutex> lock(cout_mutex);
         drawInterface();
@@ -69,6 +71,8 @@ void display(Server &server)
         }
         //cout.unlock();
        // std::cout << "> " << string(input) << endl;
+
+       this_thread::sleep_for(chrono::seconds(5));
     }
 }
 
@@ -106,27 +110,31 @@ void requestParticipantData(Server &server)
     }
 }
 
-void sendWoLPacket(Server &server)
+void sendWoLPacket(Server &server, string hostname)
 {
     // this_thread::sleep_for(chrono::seconds(3));
-    while (true) {
-        for (DiscoveredData &client : discoveredClients) {
-            if (!strcmp(client.hostname, "s-67-101-15")) {  // Argument of command WAKEUP hostname
-                cout << "tchaau" << endl;
-                server.sendWoLPacket(client);
-            }
+    char* cstr = new char[hostname.length() + 1];
+    strcpy(cstr, hostname.c_str());
+    // while (true) {
+    for (DiscoveredData &client : discoveredClients) {
+        if (!strcmp(client.hostname, cstr)) {  // Argument of command WAKEUP hostname
+            server.sendWoLPacket(client);
+        } else {
+            cout << "Participante com o hostname não encontrado ou não está dormindo." << endl;
         }
+        break;        
     }
+    // }
 }
 
 void clear_line() {
     std::cout << "\33[2K\r";
 }
 
-void read_input(Client &client);
+void read_input(Client &client, Server &server);
 
 
-void manipulateInput(char input[100], Client &client){
+void manipulateInput(char input[100], Client &client, Server &server){
     std::string word(input);
     bool startsWithWake = (word.length() >= 4 && word.substr(0, 4) == "WAKE");
     if (word == "EXIT") {
@@ -142,7 +150,7 @@ void manipulateInput(char input[100], Client &client){
             } else {
                 std::cout << "Comando inválido!" << std::endl;
             }
-    read_input(client);
+    read_input(client, server);
 }
 
 void read_input(Client &client) {
@@ -160,7 +168,7 @@ void read_input(Client &client) {
                     input[n] = '\0';
                 }
             } else if (ch == '\n') { // Verifica se a tecla pressionada é o Enter (nova linha)
-                manipulateInput(input,client);
+                manipulateInput(input,client, server);
                 break; // Sai do loop ao pressionar Enter
             } else {
                 input[n++] = ch; // Armazena o caractere lido e incrementa n
@@ -182,12 +190,12 @@ void runManagerMode() {
     type = 1;
 
     thread t1(runSendSocket, ref(server));
-    // thread t2(requestParticipantsSleepStatus, ref(server));
+    thread t2(requestParticipantsSleepStatus, ref(server));
     thread t3(display, ref(server));
     // thread t4(sendWoLPacket, ref(server));
     thread t5(waitForRequestsServer, ref(server));
     // thread t6(requestParticipantData, ref(server));
-    thread t6(read_input, ref(client));
+    thread t6(read_input, ref(client), ref(server));
 
     t1.join();
     // t2.join();
@@ -200,6 +208,7 @@ void runManagerMode() {
 void runClientMode(int argc) {
     drawInterface();
     cout << "Client mode" << endl;
+    Server server;
     Client client;
     type = 0;
 
@@ -207,7 +216,7 @@ void runClientMode(int argc) {
     thread t4(waitForRequestsClient, ref(client));
     // thread t5(sendExitRequest, ref(client));
     // thread t6(waitForParticipantDataRequests, ref(client));
-    thread t7(read_input, ref(client));
+    thread t7(read_input, ref(client), ref(server));
 
     t3.join();
     t4.join();
