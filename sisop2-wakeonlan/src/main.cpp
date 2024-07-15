@@ -121,12 +121,11 @@ void sendWoLPacket(Server &server, string hostname)
     for (DiscoveredData &client : discoveredClients) {
         if (!strcmp(client.hostname, cstr)) {  // Argument of command WAKEUP hostname
             server.sendWoLPacket(client);
-        } else {
-            cout << "Participante com o hostname não encontrado ou não está dormindo." << endl;
-        }
-        break;        
+            return;
+        }     
     }
-    // }
+    
+    cout << "Participante com o hostname não encontrado ou não está dormindo." << endl;
 }
 
 void clear_line() {
@@ -153,6 +152,7 @@ void manipulateInput(char input[100], Client &client, Server &server){
             } else {
                 std::cout << "Comando inválido!" << std::endl;
             }
+            cout << word << endl;
     read_input(client, server);
 }
 
