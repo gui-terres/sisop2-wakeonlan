@@ -206,7 +206,7 @@ void Client::waitForRequests(Status status)
         return;
     }
 
-    printf("esperando por requests\n");
+    //printf("esperando por requests\n");
 
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -317,7 +317,7 @@ void Client::waitForParticipantDataRequests()
         return;
     }
 
-    printf("esperando por requests\n");
+    //printf("esperando por requests\n");
 
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));

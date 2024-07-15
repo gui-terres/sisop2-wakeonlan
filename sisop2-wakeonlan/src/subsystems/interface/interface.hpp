@@ -20,6 +20,7 @@ struct Button {
         : label(lbl) {}
 };
 
+
 // Função para inicializar os botões
 void initializeButtons();
 
@@ -33,7 +34,10 @@ void clearScreen();
 void drawHeader();
 
 // Função para desenhar a interface com os botões
-void drawInterface(int selectedButton);
+//void drawInterface(int selectedButton);
+void drawInterface();
+void setTermNoBufferedInput();
+void restoreTermSettings();
 
 // Função para configurar o terminal para o modo "raw"
 void enableRawMode();

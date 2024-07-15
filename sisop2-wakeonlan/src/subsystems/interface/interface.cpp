@@ -1,22 +1,5 @@
 #include "interface.hpp"
 
-// Definição do ponteiro global para o array de botões
-Button* buttons = nullptr;
-
-// Função para inicializar os botões
-void initializeButtons() {
-    buttons = static_cast<Button*>(malloc(NUM_BUTTONS * sizeof(Button)));
-
-    if (buttons == nullptr) {
-        std::cerr << "Erro ao alocar memória para os botões!" << std::endl;
-        exit(1);
-    }
-
-    new (&buttons[0]) Button{"Acordar uma máquina"};
-    new (&buttons[1]) Button{"Listar máquinas"};
-    new (&buttons[2]) Button{"Ativar linha de comando"};
-    new (&buttons[3]) Button{"Sair"};
-}
 
 void clearScreen() {
     std::cout << "\033[2J\033[H"; // Código de escape ANSI para limpar a tela
@@ -56,7 +39,28 @@ std::cout << std::endl;
 std::cout << std::endl;
 
 }
+void drawInterface(){
+    clearScreen(); 
+    drawHeader();
+}
 
+// Função para configurar o terminal para ler uma tecla sem esperar por '\n'
+void setTermNoBufferedInput() {
+    struct termios t;
+    tcgetattr(STDIN_FILENO, &t);
+    t.c_lflag &= ~(ICANON | ECHO); // Desliga modo canônico e echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+}
+
+// Função para restaurar as configurações originais do terminal
+void restoreTermSettings() {
+    struct termios t;
+    tcgetattr(STDIN_FILENO, &t);
+    t.c_lflag |= (ICANON | ECHO); // Liga modo canônico e echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+}
+
+/*
 void drawInterface(int selectedButton) {
     
     clearScreen(); // Limpa a tela antes de desenhar a interface
@@ -77,6 +81,25 @@ void drawInterface(int selectedButton) {
     // Mostra o cursor para indicar a posição do usuário
     std::cout << std::endl << std::endl << "Selecione um botão usando as teclas de seta ou WASD." << std::endl;
 }
+
+// Definição do ponteiro global para o array de botões
+Button* buttons = nullptr;
+
+// Função para inicializar os botões
+void initializeButtons() {
+    buttons = static_cast<Button*>(malloc(NUM_BUTTONS * sizeof(Button)));
+
+    if (buttons == nullptr) {
+        std::cerr << "Erro ao alocar memória para os botões!" << std::endl;
+        exit(1);
+    }
+
+    new (&buttons[0]) Button{"Acordar uma máquina"};
+    new (&buttons[1]) Button{"Listar máquinas"};
+    new (&buttons[2]) Button{"Ativar linha de comando"};
+    new (&buttons[3]) Button{"Sair"};
+}
+
 
 // Estrutura para armazenar as configurações originais do terminal
 struct termios originalTermios;
@@ -142,3 +165,4 @@ void processInput(char input, int &selectedButton, bool isArrowKey) {
         }
     }
 }
+*/
