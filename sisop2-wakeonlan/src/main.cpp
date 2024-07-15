@@ -92,9 +92,7 @@ void waitForRequestsClient(Client &client)
 
 void sendExitRequest(Client &client)
 {   
-    while (true){
-        client.sendExitRequest(client.managerInfo.ipAddress);      
-    }
+    client.sendExitRequest(client.managerInfo.ipAddress);      
 }
 
 void waitForParticipantDataRequests(Client &client)
@@ -143,7 +141,7 @@ void manipulateInput(char input[100], Client &client, Server &server){
     if (word == "EXIT") {
         std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
         sendExitRequest(client);
-        waitForRequestsClient(client);
+        //waitForRequestsClient(client);
         restoreTermSettings();
         std::exit(EXIT_SUCCESS); 
         } else if (startsWithWake && type == 1) {
