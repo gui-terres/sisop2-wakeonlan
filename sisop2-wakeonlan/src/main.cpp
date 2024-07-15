@@ -5,6 +5,7 @@
 #include <vector>
 #include <iomanip>
 #include <mutex>
+#include <csignal> // Para signal e SIGINT
 #include "subsystems/discovery/discovery.hpp"
 #include "subsystems/interface/interface.hpp"
 
@@ -15,6 +16,7 @@ std::string current_input;
 char input[100];
 int n = 0;
 bool type;
+bool ctrl = 0;
 
 void runSendSocket(Server &server)
 {
@@ -167,6 +169,7 @@ void read_input(Client &client, Server &server) {
         if (read(STDIN_FILENO, &ch, 1) == 1) { // Lê um caractere do terminal
             if (ch == '\b') { // Verifica se a tecla pressionada é o backspace
                 if (n > 0) {
+                    cout << "aaaa" << endl;
                     n--;
                     input[n] = '\0';
                 }
@@ -184,7 +187,26 @@ void read_input(Client &client, Server &server) {
     }
 }
 
-
+void handleSigInt(int signum) {
+    //std::exit(signum); // Sai do programa com o código do sinal recebido
+    ctrl = 1;
+}
+void isCTRLc(){
+    signal(SIGINT, handleSigInt);
+}
+void isCTRLcT(Client &client){
+    while (true)
+    {
+        if(ctrl){
+            std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
+        sendExitRequest(client);
+        //waitForRequestsClient(client);
+        restoreTermSettings();
+        std::exit(EXIT_SUCCESS); 
+        }
+    }
+    
+}
 
 void runManagerMode() {
     cout << "Manager mode" << endl;
@@ -220,12 +242,16 @@ void runClientMode(int argc) {
     // thread t5(sendExitRequest, ref(client));
     // thread t6(waitForParticipantDataRequests, ref(client));
     thread t7(read_input, ref(client), ref(server));
+    thread t8(isCTRLc);
+    thread t9(isCTRLcT, ref(client));
 
     t3.join();
     t4.join();
     // t5.join();
     // t6.join();
     t7.join();
+    t8.join();
+    t9.join();
 }
 
 int main(int argc, char **argv)
