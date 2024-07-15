@@ -149,6 +149,7 @@ void manipulateInput(char input[100], Client &client, Server &server){
             std::cout << "WAKE" << std::endl;
             word.erase(0, 5);
             cout << "IP: " << word << endl; //IP TA AQUI!!!!!!!! -------------------------------------------
+            sendWoLPacket(server, word);
             } else {
                 std::cout << "Comando inválido!" << std::endl;
             }
