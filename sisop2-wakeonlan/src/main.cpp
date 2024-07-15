@@ -69,30 +69,23 @@ void display(Server &server)
         }
         //cout.unlock();
        // std::cout << "> " << string(input) << endl;
-        
-        this_thread::sleep_for(chrono::seconds(5));
     }
 }
 
-void searchForManager(Client &client, int argc, Status status)
+void searchForManager(Client &client, int argc)
 {
-    client.sendSocket(argc, status);
+    client.sendSocket(argc);
 }
 
-void waitForRequestsClient(Client &client, Status status)
+void waitForRequestsClient(Client &client)
 {
-    client.waitForRequests(status);
+    client.waitForRequests();
 }
 
-void sendExitRequest(Client &client, char *ip)
+void sendExitRequest(Client &client)
 {   
-    this_thread::sleep_for(chrono::seconds(10));    
-    cout << ip << endl;
-
-    if (!strcmp(ip, "172.18.0.12")){ //TODO
+    while (true){
         client.sendExitRequest(client.managerInfo.ipAddress);      
-    } else {
-        cout << "eu estou vivo!!!!!1 (" << ip << ")" << endl;
     }
 }
 
@@ -130,12 +123,17 @@ void clear_line() {
     std::cout << "\33[2K\r";
 }
 
-void read_input();
-void manipulateInput(char input[100]){
+void read_input(Client &client);
+
+
+void manipulateInput(char input[100], Client &client){
     std::string word(input);
     bool startsWithWake = (word.length() >= 4 && word.substr(0, 4) == "WAKE");
     if (word == "EXIT") {
-        std::cout << "sairrr" << std::endl;
+        std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
+        sendExitRequest(client);
+        waitForRequestsClient(client);
+        restoreTermSettings();
         std::exit(EXIT_SUCCESS); 
         } else if (startsWithWake && type == 1) {
             std::cout << "WAKE" << std::endl;
@@ -144,10 +142,10 @@ void manipulateInput(char input[100]){
             } else {
                 std::cout << "Comando inválido!" << std::endl;
             }
-    read_input();
+    read_input(client);
 }
 
-void read_input() {
+void read_input(Client &client) {
     setTermNoBufferedInput(); // Configura terminal para entrada sem buffer
     n=0;
     char ch;
@@ -162,7 +160,7 @@ void read_input() {
                     input[n] = '\0';
                 }
             } else if (ch == '\n') { // Verifica se a tecla pressionada é o Enter (nova linha)
-                manipulateInput(input);
+                manipulateInput(input,client);
                 break; // Sai do loop ao pressionar Enter
             } else {
                 input[n++] = ch; // Armazena o caractere lido e incrementa n
@@ -180,6 +178,7 @@ void read_input() {
 void runManagerMode() {
     cout << "Manager mode" << endl;
     Server server;
+    Client client;
     type = 1;
 
     thread t1(runSendSocket, ref(server));
@@ -188,7 +187,7 @@ void runManagerMode() {
     // thread t4(sendWoLPacket, ref(server));
     thread t5(waitForRequestsServer, ref(server));
     // thread t6(requestParticipantData, ref(server));
-    thread t6(read_input);
+    thread t6(read_input, ref(client));
 
     t1.join();
     // t2.join();
@@ -198,34 +197,33 @@ void runManagerMode() {
     t6.join();
 }
 
-void runClientMode(int argc, char *ip) {
+void runClientMode(int argc) {
     drawInterface();
     cout << "Client mode" << endl;
     Client client;
-    Status status = Status::AWAKEN;
     type = 0;
 
-    thread t3(searchForManager, ref(client), argc, status);
-    thread t4(waitForRequestsClient, ref(client), status);
-    thread t5(sendExitRequest, ref(client), ip);
-    thread t6(waitForParticipantDataRequests, ref(client));
-    thread t7(read_input);
+    thread t3(searchForManager, ref(client), argc);
+    thread t4(waitForRequestsClient, ref(client));
+    // thread t5(sendExitRequest, ref(client));
+    // thread t6(waitForParticipantDataRequests, ref(client));
+    thread t7(read_input, ref(client));
 
     t3.join();
     t4.join();
-    t5.join();
-    t6.join();
+    // t5.join();
+    // t6.join();
     t7.join();
 }
 
 int main(int argc, char **argv)
 {
-    if (argc > 3) {
+    if (argc > 2) {
         cout << "Invalid initialization!" << endl;
         return 1;
     }
 
-    if (argc < 3) {
+    if (argc > 1) {
         if (!strcmp(argv[1], "manager")) {
             runManagerMode();
             return 0;
@@ -235,7 +233,7 @@ int main(int argc, char **argv)
             return 1;
         }
     } else {
-        runClientMode(argc, argv[1]);
+        runClientMode(argc);
         return 0;
     }
 

@@ -66,8 +66,8 @@ private:
 public:
     DiscoveredData managerInfo;
 
-    int sendSocket(int argc, Status status);
-    void waitForRequests(Status status);
+    int sendSocket(int argc);
+    void waitForRequests();
     int sendExitRequest(const char *ipAddress);
     void waitForParticipantDataRequests();
 };

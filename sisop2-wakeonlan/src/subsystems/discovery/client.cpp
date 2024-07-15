@@ -126,7 +126,7 @@ using namespace std;
 //     return 0;
 // }
 
-int Client::sendSocket(int argc, Status status)
+int Client::sendSocket(int argc)
 {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
@@ -161,7 +161,7 @@ int Client::sendSocket(int argc, Status status)
     getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
     // getStatus(pcData.status);
-    pcData.status = status;
+    pcData.status = Status::AWAKEN;
 
     // cout << "Hostname: " << pcData.hostname << endl;
     // cout << "IP Address: " << pcData.ipAddress << endl;
@@ -197,7 +197,7 @@ int Client::sendSocket(int argc, Status status)
 }
 
 // MONITORAMENTO
-void Client::waitForRequests(Status status)
+void Client::waitForRequests()
 {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
@@ -234,13 +234,14 @@ void Client::waitForRequests(Status status)
             continue;
         }
 
-        printf("recebi algo\n");
+        // printf("recebi algo\n");
 
         if (request.request == Request::SLEEP_STATUS)
         {
             // Status status;
             // getStatus(status);
             // retornar o status
+            Status status = Status::AWAKEN;
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
         }
     }
@@ -287,23 +288,6 @@ int Client::sendExitRequest(const char *ipAddress)
 
     cout << "mandei msg para: " << ipAddress << endl;
 
-    // // Receber resposta
-    // struct sockaddr_in from;
-    // socklen_t fromlen = sizeof(from);
-    // Status responseStatus;
-    // ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
-    // if (bytesReceived < 0) {
-    //     if (errno == EWOULDBLOCK || errno == EAGAIN) {
-    //         cerr << "ERROR: Timeout receiving response." << endl;
-    //     } else {
-    //         cerr << "ERROR receiving response." << endl;
-    //     }
-    //     status = Status::ASLEEP; // Defina o status como ASLEEP em caso de timeout
-    //     close(sockfd);
-    //     return 0;
-    // }
-
-    // status = responseStatus;
     close(sockfd);
     return 0;
 }
@@ -345,7 +329,7 @@ void Client::waitForParticipantDataRequests()
             continue;
         }
 
-        printf("recebi algo\n");
+        // printf("recebi algo\n");
 
         if (request.request == Request::PARTICIPANT_DATA)
         {
