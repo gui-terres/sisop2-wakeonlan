@@ -52,24 +52,26 @@ void display(Server &server)
         if (!discoveredClients.empty()) {
 
             std::cout << std::endl;
-            std::cout << " _________________________________________________________" << std::endl;
-            std::cout << "|              |                   |             |        |" << std::endl;
-            std::cout << "|   Hostname   |   Endereço MAC    | Endereço IP | Status |" << std::endl;
-            std::cout << "|______________|___________________|_____________|________|" << std::endl;
+            std::cout << " ___________________________________________________________" << std::endl;
+            std::cout << "|              |                   |               |        |" << std::endl;
+            std::cout << "|   Hostname   |   Endereço MAC    |  Endereço IP  | Status |" << std::endl;
+            std::cout << "|______________|___________________|_______________|________|" << std::endl;
          
             for (const auto &client : discoveredClients) {
-                std::cout << "|              |                   |             |        |" << std::endl;
+                std::cout << "|              |                   |               |        |" << std::endl;
                 std::cout << "| " << std::setw(12) << client.hostname
                         << " | " << std::setw(17) << client.macAddress
-                        << " | " << std::setw(11) << client.ipAddress
+                        << " | " << std::setw(13) << client.ipAddress
                         << " | " << std::setw(6) << client.status
                         << " |" << std::endl;
-                std::cout << "|______________|___________________|_____________|________|" << std::endl;
+                std::cout << "|______________|___________________|_______________|________|" << std::endl;
+                //std::cout << "|______________|___________________|_______________|________|" << std::endl << endl;
             }
         } else {
           cout << endl << "Sem clientes no momento!" << endl << endl << endl;
         }
         //cout.unlock();
+        cout << endl; 
        // std::cout << "> " << string(input) << endl;
 
        this_thread::sleep_for(chrono::seconds(5));
