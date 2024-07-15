@@ -285,9 +285,7 @@ int Client::sendExitRequest(const char *ipAddress)
         close(sockfd);
         return -1;
     }
-
-    cout << "mandei msg para: " << ipAddress << endl;
-
+    
     close(sockfd);
     return 0;
 }

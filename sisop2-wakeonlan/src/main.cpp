@@ -153,7 +153,7 @@ void manipulateInput(char input[100], Client &client, Server &server){
     read_input(client, server);
 }
 
-void read_input(Client &client) {
+void read_input(Client &client, Server &server) {
     setTermNoBufferedInput(); // Configura terminal para entrada sem buffer
     n=0;
     char ch;
