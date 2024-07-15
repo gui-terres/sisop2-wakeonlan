@@ -22,7 +22,7 @@ std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            %&&&&&
 std::cout << "                 \033[31m*((*\033[0m      @@@@@@@@.  ,@@@@@@@@,      \033[30m...........................................\033[0m               " << std::endl;
 std::cout << "              \033[31m*########,\033[0m   @@@@@@@@.  ,@@@@@@@@,        \033[31mINF01151 - Sistemas Operacionais Ii N - Turma A (2024/1)\033[0m" << std::endl;
 std::cout << "              \033[31m(########/\033[0m   @@@@@@@@.  ,@@@@@@@@,        \033[31mTrabalho prático da disciplina\033[0m                          " << std::endl;
-std::cout << "               \033[31m/######*\033[0m    @@@@@@@@.  ,@@@@@@@@,        Arthur, Cauê, Guilherme e Júlia                                        " << std::endl;
+std::cout << "               \033[31m/######*\033[0m    @@@@@@@@.  ,@@@@@@@@,        Arthur, Guilherme e Júlia                                        " << std::endl;
 std::cout << std::endl;
 std::cout << "                                                         _       __      __              ____              __                             " << std::endl;
 std::cout << "                                                        | |     / /___ _/ /_____        / __ \\____        / /   ____ _____               " << std::endl;

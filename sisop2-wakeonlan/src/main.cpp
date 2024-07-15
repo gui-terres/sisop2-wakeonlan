@@ -14,6 +14,7 @@ std::mutex cout_mutex;
 std::string current_input;
 char input[100];
 int n = 0;
+bool type;
 
 void runSendSocket(Server &server)
 {
@@ -136,7 +137,7 @@ void manipulateInput(char input[100]){
     if (word == "EXIT") {
         std::cout << "sairrr" << std::endl;
         std::exit(EXIT_SUCCESS); 
-        } else if (startsWithWake) {
+        } else if (startsWithWake && type == 1) {
             std::cout << "WAKE" << std::endl;
             word.erase(0, 5);
             cout << "IP: " << word << endl; //IP TA AQUI!!!!!!!! -------------------------------------------
@@ -179,6 +180,7 @@ void read_input() {
 void runManagerMode() {
     cout << "Manager mode" << endl;
     Server server;
+    type = 1;
 
     thread t1(runSendSocket, ref(server));
     // thread t2(requestParticipantsSleepStatus, ref(server));
@@ -201,16 +203,19 @@ void runClientMode(int argc, char *ip) {
     cout << "Client mode" << endl;
     Client client;
     Status status = Status::AWAKEN;
+    type = 0;
 
     thread t3(searchForManager, ref(client), argc, status);
     thread t4(waitForRequestsClient, ref(client), status);
     thread t5(sendExitRequest, ref(client), ip);
     thread t6(waitForParticipantDataRequests, ref(client));
+    thread t7(read_input);
 
     t3.join();
     t4.join();
     t5.join();
     t6.join();
+    t7.join();
 }
 
 int main(int argc, char **argv)
