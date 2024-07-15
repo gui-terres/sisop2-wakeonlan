@@ -64,7 +64,12 @@ class Client : public Station {
 private:
     // 
 public:
-    DiscoveredData managerInfo;
+    DiscoveredData managerInfo = {
+        hostname: "@@@@",
+        ipAddress: "@@@@",
+        macAddress: "@@@@",
+        status: Status::ASLEEP
+    };
 
     int sendSocket(int argc);
     void waitForRequests();

@@ -285,7 +285,7 @@ int Client::sendExitRequest(const char *ipAddress)
         close(sockfd);
         return -1;
     }
-    
+
     close(sockfd);
     return 0;
 }

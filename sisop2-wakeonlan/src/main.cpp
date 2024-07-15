@@ -78,7 +78,9 @@ void display(Server &server)
 
 void searchForManager(Client &client, int argc)
 {
-    client.sendSocket(argc);
+    while (!strcmp(client.managerInfo.ipAddress,"@@@@")){
+        client.sendSocket(argc);
+    }
 }
 
 void waitForRequestsClient(Client &client)
