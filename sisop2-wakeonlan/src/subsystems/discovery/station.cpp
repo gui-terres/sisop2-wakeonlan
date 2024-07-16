@@ -92,7 +92,6 @@ int Station::getMacAddress(int sockfd, char *macAddress, size_t size)
 int Station::getStatus(Status &status)
 {
     FILE *fp = popen("systemctl is-active systemd-timesyncd.service", "r");
-    // FILE* fp = popen("service systemd-timesyncd status", "r");
     if (!fp)
     {
         std::cerr << "Failed to open power status file." << std::endl;
@@ -121,7 +120,6 @@ int Station::getStatus(Status &status)
         pclose(fp);
         return -1;
     }
-
-    // não fazendo nada, só ficando com o valor original
+    
     return 0;
 }

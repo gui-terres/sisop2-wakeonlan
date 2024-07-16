@@ -58,8 +58,6 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
         return -1;
     }
 
-    // cout << "mandei msg para: " << ipAddress << endl;
-
     // Receber resposta
     struct sockaddr_in from;
     socklen_t fromlen = sizeof(from);
@@ -87,14 +85,14 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR)
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
-        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+        return 1;
     }
 
     // Permitir pacotes de broadcast
     int broadcastPermission = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcastPermission, sizeof(broadcastPermission)) < 0) {
         cerr << "ERROR setting broadcast permission." << endl;
-        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+        return 1;  
     }
 
     struct sockaddr_in participant_addr;
@@ -105,7 +103,7 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR)
 
     if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
         cerr << "ERROR on binding socket." << endl;
-        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+        return 1;  
     }
 
     sockaddr_in cli_addr;
@@ -129,11 +127,6 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR)
             std::lock_guard<std::mutex> lock(mtx);
             discoveredClients.push_back(receivedData);
         }
-
-        // cout << "Hostname: " << receivedData.hostname << endl;
-        // cout << "IP Address: " << receivedData.ipAddress << endl;
-        // cout << "MAC Address: " << receivedData.macAddress << endl;
-        // cout << "Status: " << receivedData.status << endl;
 
         char buffer[BUFFER_SIZE];
         DiscoveredData managerInfo;
@@ -219,17 +212,11 @@ int Server::sendWoLPacket(DiscoveredData &client)
         packet.insert(packet.end(), macBytes.begin(), macBytes.end());
     }
 
-    // cout << "tchaau" << endl;
-    // printHex(packet);
-
     if (sendto(sockfd, packet.data(), packet.size(), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0)
     {
-        // cerr << "ERROR sending request." << endl;
         close(sockfd);
         return -1;
     }
-
-    // cout << "mandei msg para: " << client.ipAddress << endl;
 
     close(sockfd);
     return 0;
@@ -243,8 +230,6 @@ void Server::waitForRequests(Server &server)
         cerr << "ERROR opening socket." << endl;
         return;
     }
-
-    //printf("esperando por requests\n");
 
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -272,25 +257,13 @@ void Server::waitForRequests(Server &server)
             continue;
         }
 
-        // printf("recebi algo\n");
-
         if (request.request == Request::EXIT)
         {
-            // Status status;
-            // getStatus(status);
-            // retornar o status
-            // sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
-            // cout << "EXIT" << endl;
-
             char ipAddress[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &from.sin_addr, ipAddress, sizeof(ipAddress)) == nullptr) {
                 cerr << "ERROR converting address." << endl;
                 close(sockfd);                
             } else {
-                // cout << "Received request from IP: " << ipAddress << endl;
-
-                // DiscoveredData* data = server.requestParticipantData(ipAddress);
-
                 discoveredClients.erase(
                     std::remove_if(discoveredClients.begin(), discoveredClients.end(),
                                 [ipAddress](const DiscoveredData& data) {
@@ -298,21 +271,6 @@ void Server::waitForRequests(Server &server)
                                 }),
                     discoveredClients.end()
                 );
-
-                // if (data != nullptr) {
-                //     // A chamada foi bem-sucedida, use os dados recebidos
-                //     auto it = std::remove_if(discoveredClients.begin(), discoveredClients.end(),
-                //                             [ipAddress](const DiscoveredData& data) {
-                //                                 return strcmp(data.ipAddress, ipAddress) == 0;
-                //                             });
-                //     discoveredClients.erase(it, discoveredClients.end());
-
-                //     // Libere a memória alocada
-                //     delete data;
-                // } else {
-                //     // Houve um erro ao solicitar os dados
-                //     cerr << "Failed to retrieve participant data." << endl;
-                // }
             }
 
         }

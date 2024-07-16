@@ -19,113 +19,6 @@
 
 using namespace std;
 
-// int Client::getHostname(char *buffer, size_t bufferSize, DiscoveredData &data)
-// {
-//     memset(buffer, 0, sizeof(buffer));
-
-//     if ((gethostname(buffer, bufferSize)) == -1)
-//     {
-//         cout << "ERROR on getting the hostname." << endl;
-//         return -1;
-//     }
-
-//     strncpy(data.hostname, buffer, MAX_HOSTNAME_SIZE - 1);
-//     data.hostname[MAX_HOSTNAME_SIZE - 1] = '/0';
-
-//     memset(buffer, 0, sizeof(buffer));
-
-//     return 0;
-// }
-
-// int Client::getIpAddress(DiscoveredData &data)
-// {
-//     struct ifaddrs *netInterfaces, *tempInterface = NULL;
-
-//     if (!getifaddrs(&netInterfaces))
-//     {
-//         tempInterface = netInterfaces;
-
-//         while (tempInterface != NULL)
-//         {
-//             if (tempInterface->ifa_addr->sa_family == AF_INET)
-//             {
-//                 if (strcmp(tempInterface->ifa_name, "eth0") == 0)
-//                 {
-//                     strncpy(data.ipAddress, inet_ntoa(((struct sockaddr_in *)tempInterface->ifa_addr)->sin_addr), IP_ADDRESS_SIZE - 1);
-//                     data.ipAddress[IP_ADDRESS_SIZE - 1] = '\0';
-//                 }
-//             }
-
-//             tempInterface = tempInterface->ifa_next;
-//         }
-
-//         freeifaddrs(netInterfaces);
-//     }
-//     else
-//     {
-//         cout << "ERROR on getting IP Adress." << endl;
-//         return -1;
-//     }
-
-//     return 0;
-// }
-
-// int Client::getMacAddress(int sockfd, char *macAddress, size_t size)
-// {
-//     struct ifreq ifr;
-
-//     strcpy(ifr.ifr_name, "eth0");
-
-//     if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) < 0)
-//     {
-//         cerr << "ERROR on getting Mac Address." << endl;
-//         close(sockfd);
-//         return -1;
-//     }
-
-//     unsigned char *mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
-//     snprintf(macAddress, size, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-//     return 0;
-// }
-
-// int Client::getStatus(Status &status)
-// {
-//     FILE *fp = popen("systemctl is-active systemd-timesyncd.service", "r");
-//     // FILE* fp = popen("service systemd-timesyncd status", "r");
-//     if (!fp)
-//     {
-//         std::cerr << "Failed to open power status file." << std::endl;
-//         return -1;
-//     }
-
-//     char result[10];
-//     if (fgets(result, sizeof(result), fp))
-//     {
-//         pclose(fp);
-//         // Check if the service is active
-//         if (std::string(result).find("active") != std::string::npos)
-//         {
-//             status = Status::AWAKEN;
-//         }
-//         else
-//         {
-//             status = Status::ASLEEP;
-//         }
-
-//         return 0;
-//     }
-//     else
-//     {
-//         std::cerr << "Failed to read command output." << std::endl;
-//         pclose(fp);
-//         return -1;
-//     }
-
-//     // não fazendo nada, só ficando com o valor original
-//     return 0;
-// }
-
 int Client::sendSocket(int argc)
 {
     int sockfd;
@@ -145,7 +38,7 @@ int Client::sendSocket(int argc)
 
     if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
         cerr << "ERROR on binding socket." << endl;
-        return 1;  // Certifique-se de sair ou tratar o erro apropriadamente
+        return 1;  
     }
 
     struct sockaddr_in serv_addr;
@@ -160,18 +53,7 @@ int Client::sendSocket(int argc)
     getHostname(buffer, BUFFER_SIZE, pcData);
     getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-    // getStatus(pcData.status);
     pcData.status = Status::AWAKEN;
-
-    // cout << "Hostname: " << pcData.hostname << endl;
-    // cout << "IP Address: " << pcData.ipAddress << endl;
-    // cout << "Mac Address: " << pcData.macAddress << endl;
-    // cout << "Status: " << ((pcData.status == 1) ? "AWAKEN" : "ASLEEP") << endl;
-
-    /** Uncomment if necessary **/
-    // printf("Enter the message: ");
-    // bzero(buffer, 256);
-    // fgets(buffer, 256, stdin);
 
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
         cerr << "ERROR on sendto." << endl;
@@ -190,8 +72,6 @@ int Client::sendSocket(int argc)
     cout << "IP Address: " << managerInfo.ipAddress << endl;
     cout << "Mac Address: " << managerInfo.macAddress << endl;
 
-    // cout << "Got an ack: " << buffer << endl;
-
     close(sockfd);
     return 0;
 }
@@ -205,8 +85,6 @@ void Client::waitForRequests()
         cerr << "ERROR opening socket." << endl;
         return;
     }
-
-    //printf("esperando por requests\n");
 
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -234,13 +112,8 @@ void Client::waitForRequests()
             continue;
         }
 
-        // printf("recebi algo\n");
-
         if (request.request == Request::SLEEP_STATUS)
         {
-            // Status status;
-            // getStatus(status);
-            // retornar o status
             Status status = Status::AWAKEN;
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
         }
@@ -257,7 +130,6 @@ int Client::sendExitRequest(const char *ipAddress)
         return -1;
     }
 
-    // Definir tempo limite de 5 segundos para recebimento
     struct timeval tv;
     tv.tv_sec = 3;
     tv.tv_usec = 0;
@@ -299,8 +171,6 @@ void Client::waitForParticipantDataRequests()
         return;
     }
 
-    //printf("esperando por requests\n");
-
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
     client_addr.sin_family = AF_INET;
@@ -327,20 +197,14 @@ void Client::waitForParticipantDataRequests()
             continue;
         }
 
-        // printf("recebi algo\n");
-
         if (request.request == Request::PARTICIPANT_DATA)
         {
-            // Status status;
-            // getStatus(status);
-            // retornar o status
             char buffer[BUFFER_SIZE];
 
             DiscoveredData pcData;
             getHostname(buffer, BUFFER_SIZE, pcData);
             getIpAddress(pcData);
             getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-            // getStatus(pcData.status);
             pcData.status = Status::AWAKEN;
 
             sendto(sockfd, &pcData, sizeof(pcData), 0, (struct sockaddr *)&from, fromlen);

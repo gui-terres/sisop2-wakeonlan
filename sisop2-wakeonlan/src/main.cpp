@@ -25,19 +25,15 @@ void runSendSocket(Server &server)
 
 void requestParticipantsSleepStatus(Server &server)
 {
-    // while (true) {
-        // this_thread::sleep_for(chrono::seconds(5));
     RequestData req;
     req.request = Request::SLEEP_STATUS;
 
     for (DiscoveredData &client : discoveredClients) {
         Status status;
         if (server.requestSleepStatus(client.ipAddress, req, status) == 0) {
-            // cout << "Status do cliente " << client.hostname << ": " << (status == AWAKEN ? "AWAKEN" : "ASLEEP") << endl;
             client.status = status;
         }
     }
-    // }
 }
 
 // GERENCIAMENTO - sem WakeOnLan
@@ -45,7 +41,6 @@ void display(Server &server)
 {
     while (true) {
         requestParticipantsSleepStatus(server);
-        //cout << "tentando imprimir clientes" << endl;
         std::lock_guard<std::mutex> lock(cout_mutex);
         drawInterface();
         cout << "Para sair, digite EXIT" << endl;
@@ -67,14 +62,11 @@ void display(Server &server)
                         << " | " << std::setw(6) << client.status
                         << " |" << std::endl;
                 std::cout << "|______________|___________________|_______________|________|" << std::endl;
-                //std::cout << "|______________|___________________|_______________|________|" << std::endl << endl;
             }
         } else {
           cout << endl << "Sem clientes no momento!" << endl << endl << endl;
         }
-        //cout.unlock();
         cout << endl; 
-       // std::cout << "> " << string(input) << endl;
 
        this_thread::sleep_for(chrono::seconds(5));
     }
@@ -116,10 +108,8 @@ void requestParticipantData(Server &server)
 
 void sendWoLPacket(Server &server, string hostname)
 {
-    // this_thread::sleep_for(chrono::seconds(3));
     char* cstr = new char[hostname.length() + 1];
     strcpy(cstr, hostname.c_str());
-    // while (true) {
     for (DiscoveredData &client : discoveredClients) {
         if (!strcmp(client.hostname, cstr)) {  // Argument of command WAKEUP hostname
             server.sendWoLPacket(client);
@@ -143,18 +133,14 @@ void manipulateInput(char input[100], Client &client, Server &server){
     if (word == "EXIT") {
         std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
         sendExitRequest(client);
-        //waitForRequestsClient(client);
         restoreTermSettings();
         std::exit(EXIT_SUCCESS); 
         } else if (startsWithWake && type == 1) {
-            std::cout << "WAKE" << std::endl;
-            word.erase(0, 5);
-            cout << "IP: " << word << endl; //IP TA AQUI!!!!!!!! -------------------------------------------
+            word.erase(0, 5); // IP pra acordar ta aqui
             sendWoLPacket(server, word);
             } else {
                 std::cout << "Comando inválido!" << std::endl;
             }
-            cout << word << endl;
     read_input(client, server);
 }
 
@@ -166,19 +152,19 @@ void read_input(Client &client, Server &server) {
         input[i] = '\0';
     }
     while (true) {
-        if (read(STDIN_FILENO, &ch, 1) == 1) { // Lê um caractere do terminal
-            if (ch == '\b') { // Verifica se a tecla pressionada é o backspace
+        if (read(STDIN_FILENO, &ch, 1) == 1) { 
+            if (ch == '\b') { 
                 if (n > 0) {
                     cout << "aaaa" << endl;
                     n--;
                     input[n] = '\0';
                 }
-            } else if (ch == '\n') { // Verifica se a tecla pressionada é o Enter (nova linha)
+            } else if (ch == '\n') { 
                 manipulateInput(input,client, server);
-                break; // Sai do loop ao pressionar Enter
+                break; 
             } else {
-                input[n++] = ch; // Armazena o caractere lido e incrementa n
-                input[n] = '\0'; // Garante que o array seja terminado corretamente
+                input[n++] = ch; 
+                input[n] = '\0'; 
             }
             std::cout << "\033[1F"; // Move o cursor para cima em uma linha
             std::cout << "\033[2K"; // Limpa a linha atual
@@ -188,7 +174,6 @@ void read_input(Client &client, Server &server) {
 }
 
 void handleSigInt(int signum) {
-    //std::exit(signum); // Sai do programa com o código do sinal recebido
     ctrl = 1;
 }
 void isCTRLc(){
@@ -200,7 +185,6 @@ void isCTRLcT(Client &client){
         if(ctrl){
             std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
         sendExitRequest(client);
-        //waitForRequestsClient(client);
         restoreTermSettings();
         std::exit(EXIT_SUCCESS); 
         }
@@ -217,15 +201,12 @@ void runManagerMode() {
     thread t1(runSendSocket, ref(server));
     thread t2(requestParticipantsSleepStatus, ref(server));
     thread t3(display, ref(server));
-    // thread t4(sendWoLPacket, ref(server));
     thread t5(waitForRequestsServer, ref(server));
-    // thread t6(requestParticipantData, ref(server));
     thread t6(read_input, ref(client), ref(server));
 
     t1.join();
-    // t2.join();
+    t2.join();
     t3.join();
-    //t4.join();
     t5.join();
     t6.join();
 }
@@ -239,16 +220,12 @@ void runClientMode(int argc) {
 
     thread t3(searchForManager, ref(client), argc);
     thread t4(waitForRequestsClient, ref(client));
-    // thread t5(sendExitRequest, ref(client));
-    // thread t6(waitForParticipantDataRequests, ref(client));
     thread t7(read_input, ref(client), ref(server));
     thread t8(isCTRLc);
     thread t9(isCTRLcT, ref(client));
 
     t3.join();
     t4.join();
-    // t5.join();
-    // t6.join();
     t7.join();
     t8.join();
     t9.join();
