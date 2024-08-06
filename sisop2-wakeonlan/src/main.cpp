@@ -200,8 +200,8 @@ void read_input(Client &client, Server &server);
     
 // }
 
-void runManagerMode() {
-    cout << "Manager mode" << endl;
+void runManagerMode(bool isDocker = false) {
+    cout << "Manager mode" << (isDocker ? " [Docker]" : "") << endl;
     Server server;
     Client client;
     type = 1;
@@ -226,9 +226,9 @@ void runManagerMode() {
     // t6.join();
 }
 
-void runClientMode(int argc) {
-    drawInterface();
-    cout << "Client mode" << endl;
+void runClientMode(int argc, bool isDocker = false) {
+    !isDocker ? drawInterface() : void();
+    cout << "Client mode" << (isDocker ? " [Docker]" : "") << endl;
     Server server;
     Client client;
     type = 0;
@@ -252,23 +252,29 @@ void runClientMode(int argc) {
     t9.join();
 }
 
-int main(int argc, char **argv) {
-    if (argc > 2) {
+int main(int argc, char **argv)
+{
+    if (argc > 3) {
         cout << "Invalid initialization!" << endl;
         return 1;
     }
 
+    bool isDocker = (argc == 3 && strcmp(argv[2], "docker") == 0);
+
     if (argc > 1) {
         if (!strcmp(argv[1], "manager")) {
-            runManagerMode();
+            runManagerMode(isDocker);
             return 0;
-        } else {
+        } else if (!isDocker) {
             cout << "ERROR: Invalid argument initialization!" << endl;
             cout << argv[1] << " isn't a valid mode." << endl;
             return 1;
+        }else{
+            runClientMode(argc, isDocker);
+            return 0;           
         }
     } else {
-        runClientMode(argc);
+        runClientMode(argc, isDocker);
         return 0;
     }   
 }

@@ -31,7 +31,7 @@ int Client::sendSocket(int argc) {
 
     struct sockaddr_in participant_addr;
     participant_addr.sin_family = AF_INET;
-    participant_addr.sin_port = htons(PORT_S);
+    participant_addr.sin_port = htons(PORT_SOCKET);
     participant_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Bind ao endereço local
     bzero(&(participant_addr.sin_zero), 8);
 
@@ -42,7 +42,7 @@ int Client::sendSocket(int argc) {
 
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT_S);
+    serv_addr.sin_port = htons(PORT_SOCKET);
     serv_addr.sin_addr.s_addr = inet_addr(BROADCAST_ADDR);
     bzero(&(serv_addr.sin_zero), 8);
 
@@ -85,7 +85,7 @@ void Client::waitForRequests() {
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
     client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(PORT);
+    client_addr.sin_port = htons(PORT_SLEEP);
     client_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(client_addr.sin_zero), 8);
 
@@ -133,7 +133,7 @@ int Client::sendExitRequest(const char *ipAddress) {
     struct sockaddr_in recipient_addr;
     memset(&recipient_addr, 0, sizeof(recipient_addr));
     recipient_addr.sin_family = AF_INET;
-    recipient_addr.sin_port = htons(PORT_E);
+    recipient_addr.sin_port = htons(PORT_EXIT);
     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
         cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
@@ -163,7 +163,7 @@ void Client::waitForParticipantDataRequests() {
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
     client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(PORT_PD);
+    client_addr.sin_port = htons(PORT_DATA);
     client_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(client_addr.sin_zero), 8);
 

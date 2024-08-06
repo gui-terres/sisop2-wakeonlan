@@ -29,7 +29,7 @@ int Station::getHostname(char *buffer, size_t bufferSize, StationData &data)
     }
 
     strncpy(data.hostname, buffer, MAX_HOSTNAME_SIZE - 1);
-    data.hostname[MAX_HOSTNAME_SIZE - 1] = '/0';
+    data.hostname[MAX_HOSTNAME_SIZE - 1] = '\0';
 
     memset(buffer, 0, sizeof(buffer));
 

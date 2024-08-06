@@ -3,7 +3,7 @@ services:
     build: .
     container_name: manager
     hostname: manager
-    command: ["/app/sleep_server", "manager"]
+    command: ["/app/sleep_server", "manager", "docker"]
     networks:
       lan:
         ipv4_address: 172.18.0.15
@@ -12,7 +12,7 @@ services:
     build: .
     container_name: participant1
     hostname: participant1
-    command: ["/app/sleep_server", "172.18.0.7", "."]
+    command: ["/app/sleep_server", "172.18.0.7", "docker"]
     networks:
       lan:
         ipv4_address: 172.18.0.7
@@ -23,7 +23,7 @@ services:
     build: .
     container_name: participant2
     hostname: participant2
-    command: ["/app/sleep_server", "172.18.0.12", "."]
+    command: ["/app/sleep_server", "172.18.0.12", "docker"]
     networks:
       lan:
         ipv4_address: 172.18.0.12

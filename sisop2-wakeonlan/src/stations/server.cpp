@@ -43,7 +43,7 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     struct sockaddr_in recipient_addr;
     memset(&recipient_addr, 0, sizeof(recipient_addr));
     recipient_addr.sin_family = AF_INET;
-    recipient_addr.sin_port = htons(PORT);
+    recipient_addr.sin_port = htons(PORT_SLEEP);
     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
         cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
@@ -94,8 +94,8 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR) {
 
     struct sockaddr_in participant_addr;
     participant_addr.sin_family = AF_INET;
-    participant_addr.sin_port = htons(PORT_S);
-    participant_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    participant_addr.sin_port = htons(PORT_SOCKET);
+    participant_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Bind ao endereço local
     bzero(&(participant_addr.sin_zero), 8);
 
     if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
@@ -206,7 +206,7 @@ void Server::waitForRequests() {
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
     client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(PORT_E);
+    client_addr.sin_port = htons(PORT_EXIT);
     client_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(client_addr.sin_zero), 8);
 
@@ -267,7 +267,7 @@ StationData* Server::requestParticipantData(const char *ipAddress) {
     struct sockaddr_in recipient_addr;
     memset(&recipient_addr, 0, sizeof(recipient_addr));
     recipient_addr.sin_family = AF_INET;
-    recipient_addr.sin_port = htons(PORT_PD);
+    recipient_addr.sin_port = htons(PORT_DATA);
     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
         cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
