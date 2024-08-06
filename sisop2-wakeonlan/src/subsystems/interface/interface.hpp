@@ -23,4 +23,22 @@ void setTermNoBufferedInput();
 // Função para restaurar terminal
 void restoreTermSettings();
 
+void drawTableHeader();
+
+void drawTableData(Server &server);
+
+void drawTable(Server &server);
+
+void clear_line();
+
+void manipulateInput(char input[100], Client &client, Server &server);
+
+void read_input(Client &client, Server &server);
+
+void handleSigInt(int signum);
+
+void isCTRLc();
+
+void isCTRLcT(Client &client);
+
 #endif // INTERFACE_HPP

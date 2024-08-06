@@ -13,14 +13,13 @@
 #include <net/if.h>
 #include <fstream>
 
-#include "./discovery.hpp"
+#include "./stations.hpp"
 
 #define BUFFER_SIZE 256
 
 using namespace std;
 
-int Client::sendSocket(int argc)
-{
+int Client::sendSocket(int argc) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
         cerr << "ERROR opening socket." << endl;
@@ -49,7 +48,7 @@ int Client::sendSocket(int argc)
 
     char buffer[BUFFER_SIZE];
 
-    DiscoveredData pcData;
+    StationData pcData;
     getHostname(buffer, BUFFER_SIZE, pcData);
     getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
@@ -76,12 +75,9 @@ int Client::sendSocket(int argc)
     return 0;
 }
 
-// MONITORAMENTO
-void Client::waitForRequests()
-{
+void Client::waitForRequests() {
     int sockfd;
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-    {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
         return;
     }
@@ -93,27 +89,23 @@ void Client::waitForRequests()
     client_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(client_addr.sin_zero), 8);
 
-    if (bind(sockfd, (struct sockaddr *)&client_addr, sizeof(struct sockaddr)) < 0)
-    {
+    if (bind(sockfd, (struct sockaddr *)&client_addr, sizeof(struct sockaddr)) < 0) {
         cerr << "ERROR on binding socket." << endl;
         close(sockfd);
         return;
     }
 
-    while (true)
-    {
+    while (true) {
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
-        if (bytesReceived < 0)
-        {
+        if (bytesReceived < 0) {
             cerr << "ERROR on recvfrom." << endl;
             continue;
         }
 
-        if (request.request == Request::SLEEP_STATUS)
-        {
+        if (request.request == Request::SLEEP_STATUS) {
             Status status = Status::AWAKEN;
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
         }
@@ -122,8 +114,7 @@ void Client::waitForRequests()
     close(sockfd);
 }
 
-int Client::sendExitRequest(const char *ipAddress)
-{
+int Client::sendExitRequest(const char *ipAddress) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
@@ -162,11 +153,9 @@ int Client::sendExitRequest(const char *ipAddress)
     return 0;
 }
 
-void Client::waitForParticipantDataRequests()
-{
+void Client::waitForParticipantDataRequests() {
     int sockfd;
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-    {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         cerr << "ERROR opening socket." << endl;
         return;
     }
@@ -178,30 +167,26 @@ void Client::waitForParticipantDataRequests()
     client_addr.sin_addr.s_addr = INADDR_ANY;
     bzero(&(client_addr.sin_zero), 8);
 
-    if (bind(sockfd, (struct sockaddr *)&client_addr, sizeof(struct sockaddr)) < 0)
-    {
+    if (bind(sockfd, (struct sockaddr *)&client_addr, sizeof(struct sockaddr)) < 0) {
         cerr << "ERROR on binding socket." << endl;
         close(sockfd);
         return;
     }
 
-    while (true)
-    {
+    while (true) {
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
-        if (bytesReceived < 0)
-        {
+        if (bytesReceived < 0) {
             cerr << "ERROR on recvfrom." << endl;
             continue;
         }
 
-        if (request.request == Request::PARTICIPANT_DATA)
-        {
+        if (request.request == Request::PARTICIPANT_DATA) {
             char buffer[BUFFER_SIZE];
 
-            DiscoveredData pcData;
+            StationData pcData;
             getHostname(buffer, BUFFER_SIZE, pcData);
             getIpAddress(pcData);
             getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
