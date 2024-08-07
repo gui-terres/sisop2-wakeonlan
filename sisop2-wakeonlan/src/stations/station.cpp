@@ -107,8 +107,8 @@ int Station::getStatus(Status &status)
     return 0;
 }
 
-int Station::createSocket(int protocol = SOCK_DGRAM, int port = 0) {
-    int sockfd = socket(AF_INET, protocol, 0);
+int Station::createSocket(int port) {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd == -1) {
         cerr << "ERROR opening socket." << endl;
         return -1;
@@ -122,7 +122,7 @@ int Station::createSocket(int protocol = SOCK_DGRAM, int port = 0) {
         bzero(&(addr.sin_zero), 8);
 
         if (bind(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr)) < 0) {
-            cerr << "ERROR on binding socket." << endl;
+            cerr << "ERROR on binding socket. (" << port << "): " << strerror(errno) << endl;
             close(sockfd);
             return -1;
         }
@@ -131,26 +131,42 @@ int Station::createSocket(int protocol = SOCK_DGRAM, int port = 0) {
     return sockfd;
 }
 
-void Station::setSocketOptions(int sockfd) {
+void Station::setSocketBroadcastOptions(int sockfd) {
     const int optval{1};
     if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
         throw std::runtime_error("Failed to set socket options");
     }
 }
 
-int Station::sendData(int sockfd, const void* data, size_t dataSize, const char* addr, int port) {
-    struct sockaddr_in dest_addr;
-    dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(port);
-    dest_addr.sin_addr.s_addr = inet_addr(addr);
-    bzero(&(dest_addr.sin_zero), 8);
+// void Station::waitForParticipantDataRequests() {
+//     int sockfd = createSocket(PORT_DATA);
+//     if (sockfd == -1) return;
 
-    return sendto(sockfd, data, dataSize, 0, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr_in));
-}
+//     while (true) {
+//         RequestData request;
+//         struct sockaddr_in from;
+//         socklen_t fromlen = sizeof(from);
+//         ssize_t bytesReceived = receiveData(sockfd, &request, sizeof(request), &from, &fromlen);
+//         if (bytesReceived < 0) {
+//             cerr << "ERROR on recvfrom." << endl;
+//             continue;
+//         }
 
-ssize_t Station::receiveData(int sockfd, void* buffer, size_t bufferSize, struct sockaddr_in* from, socklen_t* fromlen) {
-    return recvfrom(sockfd, buffer, bufferSize, 0, (struct sockaddr *)from, fromlen);
-}
+//         if (request.request == Request::PARTICIPANT_DATA) {
+//             char buffer[BUFFER_SIZE];
+
+//             StationData pcData;
+//             getHostname(buffer, BUFFER_SIZE, pcData);
+//             getIpAddress(pcData);
+//             getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
+//             pcData.status = Status::AWAKEN;
+
+//             sendData(sockfd, &pcData, sizeof(pcData), inet_ntoa(from.sin_addr), PORT_DATA);
+//         }
+//     }
+
+//     close(sockfd);
+// }
 
 
 

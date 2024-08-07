@@ -23,7 +23,7 @@ void Monitoring::requestParticipantsSleepStatus(Server &manager) {
 }
 
 void Monitoring::waitForSleepStatusRequest(Client &client) {
-    client.waitForRequests();
+    client.waitForSleepRequests();
 }
 
 void Monitoring::sendWoLPacket(Server &server, string hostname) {

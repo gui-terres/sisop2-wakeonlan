@@ -10,7 +10,8 @@
 
 class Management {
 public:
-    static void display(Server &server);
+    static void displayServer(Server &server);
+    static void displayClient(Client &client);
 };
 
 #endif // MANAGEMENT_H

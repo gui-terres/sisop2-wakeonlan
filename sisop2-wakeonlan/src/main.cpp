@@ -188,8 +188,8 @@ void runManagerMode(bool isDocker = false) {
     type = Type::MANAGER;
 
     thread t1(Discovery::discoverParticipants, ref(server));
-    // thread t2(Monitoring::requestParticipantsSleepStatus, ref(server));
-    thread t3(Management::display, ref(server));
+    thread t2(&Server::sendManagerInfo, &server);
+    thread t3(Management::displayServer, ref(server));
     thread t5(&Server::waitForRequests, &server);
     thread t6(read_input, ref(client), ref(server));
 
@@ -200,7 +200,7 @@ void runManagerMode(bool isDocker = false) {
     // thread t6(read_input, ref(client), ref(server));
 
     t1.join();
-    // t2.join();
+    t2.join();
     t3.join();
     t5.join();
     t6.join();
@@ -214,8 +214,12 @@ void runClientMode(int argc, bool isDocker = false) {
     Client client;
     type = Type::PARTICIPANT;
 
+    client.enterWakeOnLan(argc);
+
     thread t3(Discovery::searchForManager, ref(client), argc);
-    thread t4(&Client::waitForRequests, &client);
+    thread t4(&Client::waitForSleepRequests, &client);
+    thread t12(Management::displayClient, ref(client));
+    thread t10(Discovery::enterWakeOnLan, ref(client), argc);
     thread t7(read_input, ref(client), ref(server));
     thread t8(isCTRLc);
     thread t9(isCTRLcT, ref(client));
@@ -231,6 +235,8 @@ void runClientMode(int argc, bool isDocker = false) {
     t7.join();
     t8.join();
     t9.join();
+    t10.join();
+    t12.join();
 }
 
 int main(int argc, char **argv)

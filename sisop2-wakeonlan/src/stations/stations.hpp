@@ -5,11 +5,13 @@
 #include <vector>
 #include <mutex>
 #include <cstring>
+#include <sys/types.h>
+#include <sys/socket.h>
 
-#define PORT_SOCKET 5000
-#define PORT_SLEEP 5001
-#define PORT_EXIT 5002
-#define PORT_DATA 5003
+#define PORT_SOCKET 55000
+#define PORT_SLEEP 55001
+#define PORT_EXIT 55002
+#define PORT_MANAGER_DATA 55003
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -27,7 +29,6 @@ enum Type {
     PARTICIPANT,
     MANAGER
 };
-
 
 enum Request {
     SLEEP_STATUS,
@@ -67,10 +68,8 @@ public:
     int getIpAddress(StationData &data);
     int getMacAddress(int sockfd, char *macAddress, size_t size);
     int getStatus(Status &status);
-    int createSocket(int protocol = SOCK_DGRAM, int port = 0);
-    void setSocketOptions(int sockfd);
-    int sendData(int sockfd, const void* data, size_t dataSize, const char* addr, int port);
-    ssize_t receiveData(int sockfd, void* buffer, size_t bufferSize, struct sockaddr_in* from, socklen_t* fromlen);
+    int createSocket(int port = 0);
+    void setSocketBroadcastOptions(int sockfd);
 };
 
 class Server: public Station {
@@ -82,7 +81,8 @@ public:
     std::vector<StationData>& getDiscoveredClients();
     int sendWoLPacket(StationData &client);
     void waitForRequests();
-    StationData* requestParticipantData(const char *ipAddress);
+    int sendManagerInfo();
+    // StationData* requestParticipantData(const char *ipAddress);
 };
 
 class Client : public Station {
@@ -95,10 +95,18 @@ public:
     };
 
     int enterWakeOnLan(int argc);
-    void waitForRequests();
+    void waitForSleepRequests();
     int sendExitRequest(const char *ipAddress);
-    void waitForParticipantDataRequests();
+    // void waitForParticipantDataRequests();
+    int getManagerData();
 };
+
+// extern const StationData defaultManagerInfo = {
+//     hostname: PLACEHOLDER,
+//     ipAddress: PLACEHOLDER,
+//     macAddress: PLACEHOLDER,
+//     status: Status::ASLEEP
+// };
 
 extern std::mutex mtx;
 
