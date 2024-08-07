@@ -1,12 +1,17 @@
 #ifndef INTERFACE_HPP
 #define INTERFACE_HPP
 
+#include "../../stations/stations.hpp"
+#include "../monitoring/monitoring.hpp"
+
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <termios.h>
 #include <cstdlib> 
 #include <unistd.h>
+
+extern Type type;
 
 // Função para limpar a tela do terminal
 void clearScreen();

@@ -19,7 +19,7 @@
 
 using namespace std;
 
-int Client::sendSocket(int argc) {
+int Client::enterWakeOnLan(int argc) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
         cerr << "ERROR opening socket." << endl;
@@ -57,19 +57,19 @@ int Client::sendSocket(int argc) {
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
         cerr << "ERROR on sendto." << endl;
 
-    struct sockaddr_in from;
-    unsigned int length = sizeof(struct sockaddr_in);
-    memset(buffer, 0, sizeof(buffer));
+    // struct sockaddr_in from;
+    // unsigned int length = sizeof(struct sockaddr_in);
+    // memset(buffer, 0, sizeof(buffer));
 
-    memset(&managerInfo, 0, sizeof(managerInfo));
-    ssize_t k = recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&from, &length);
+    // memset(&managerInfo, 0, sizeof(managerInfo));
+    // ssize_t k = recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&from, &length);
 
-    if (recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&from, &length) < 0)
-        cerr << "ERROR on recvfrom." << endl;
+    // if (recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&from, &length) < 0)
+    //     cerr << "ERROR on recvfrom." << endl;
 
-    cout << "Hostname: " << managerInfo.hostname << endl;
-    cout << "IP Address: " << managerInfo.ipAddress << endl;
-    cout << "Mac Address: " << managerInfo.macAddress << endl;
+    // cout << "Hostname: " << managerInfo.hostname << endl;
+    // cout << "IP Address: " << managerInfo.ipAddress << endl;
+    // cout << "Mac Address: " << managerInfo.macAddress << endl;
 
     close(sockfd);
     return 0;

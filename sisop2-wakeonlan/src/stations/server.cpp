@@ -59,7 +59,8 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     // Receber resposta
     struct sockaddr_in from;
     socklen_t fromlen = sizeof(from);
-    Status responseStatus;
+    Status responseStatus = Status::AWAKEN;
+
     ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
     if (bytesReceived < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -77,7 +78,7 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     return 0;
 }
 
-int Server::sendSocket(const char* addr = BROADCAST_ADDR) {
+int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     int sockfd;
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -95,7 +96,7 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR) {
     struct sockaddr_in participant_addr;
     participant_addr.sin_family = AF_INET;
     participant_addr.sin_port = htons(PORT_SOCKET);
-    participant_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // Bind ao endereço local
+    participant_addr.sin_addr.s_addr = inet_addr(addr);  // Bind ao endereço local
     bzero(&(participant_addr.sin_zero), 8);
 
     if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
@@ -118,27 +119,43 @@ int Server::sendSocket(const char* addr = BROADCAST_ADDR) {
 
         {
             std::lock_guard<std::mutex> lock(mtx);
-            discoveredClients.push_back(receivedData);
+
+            // Verifica se o item já está na lista
+            auto client = std::find(discoveredClients.begin(), discoveredClients.end(), receivedData);
+
+            // // Debug: Imprime o status da lista
+            // std::cout << "Verificando se o item já está na lista..." << std::endl;
+            // for (const auto& c : discoveredClients) {
+            //     std::cout << "Na lista: " << c.ipAddress << std::endl;
+            // }
+
+            // Se não encontrar o item, adiciona
+            if (client == discoveredClients.end()) {
+                // std::cout << "Item não encontrado, adicionando..." << std::endl;
+                discoveredClients.push_back(receivedData);
+            } else {
+                // std::cout << "Item já existe na lista." << std::endl;
+            }
         }
 
-        char buffer[BUFFER_SIZE];
-        StationData managerInfo;
-        memset(&managerInfo, 0, sizeof(managerInfo));
+        // char buffer[BUFFER_SIZE];
+        // StationData managerInfo;
+        // memset(&managerInfo, 0, sizeof(managerInfo));
 
-        getHostname(buffer, BUFFER_SIZE, managerInfo);
-        getIpAddress(managerInfo);
-        getMacAddress(sockfd, managerInfo.macAddress, MAC_ADDRESS_SIZE);
+        // getHostname(buffer, BUFFER_SIZE, managerInfo);
+        // getIpAddress(managerInfo);
+        // getMacAddress(sockfd, managerInfo.macAddress, MAC_ADDRESS_SIZE);
 
-        if (sendto(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
-            cerr << "ERROR on sendto." << endl;
-        }
+        // if (sendto(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
+        //     cerr << "ERROR on sendto." << endl;
+        // }
     }
 
     close(sockfd);
     return 0;
 }
 
-std::vector<StationData> Server::getDiscoveredClients() {
+std::vector<StationData>& Server::getDiscoveredClients() {
     std::lock_guard<std::mutex> lock(mtx);
     return discoveredClients;
 }

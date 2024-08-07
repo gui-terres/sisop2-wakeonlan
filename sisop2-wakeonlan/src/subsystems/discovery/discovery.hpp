@@ -2,6 +2,8 @@
 #define DISCOVERY_H
 
 #include "../../stations/stations.hpp"
+#include <cstring>
+#include <iostream>
 
 class Discovery {
 public:

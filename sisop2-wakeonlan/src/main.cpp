@@ -7,23 +7,18 @@
 #include <mutex>
 #include <csignal> // Para signal e SIGINT
 
-#include "stations/stations.hpp"
-#include "subsystems/discovery/discovery.hpp"
-#include "subsystems/interface/interface.hpp"
-#include "subsystems/monitoring/monitoring.hpp"
-#include "subsystems/management/management.hpp"
+#include "./stations/stations.hpp"
+#include "./subsystems/discovery/discovery.hpp"
+#include "./subsystems/interface/interface.hpp"
+#include "./subsystems/monitoring/monitoring.hpp"
+#include "./subsystems/management/management.hpp"
 
 // Instanciação de subserviços
 Monitoring monitoring;
 Management management;
+Type type;
 
 using namespace std;
-std::mutex cout_mutex;
-std::string current_input;
-char input[100];
-int n = 0;
-bool type;
-bool ctrl = 0;
 
 // void runSendSocket(Server &server)
 // {
@@ -115,25 +110,11 @@ void sendExitRequest(Client &client)
 //     }
 // }
 
-void sendWoLPacket(Server &server, string hostname) {
-    char* cstr = new char[hostname.length() + 1];
-    strcpy(cstr, hostname.c_str());
-    for (StationData &client : server.discoveredClients) {
-        if (!strcmp(client.hostname, cstr)) {  // Argument of command WAKEUP hostname
-            server.sendWoLPacket(client);
-            return;
-        }
-    }
-    
-    cout << "Participante com o hostname não encontrado ou não está dormindo." << endl;
-}
-
-void clear_line() {
-    std::cout << "\33[2K\r";
-}
+// void clear_line() {
+//     std::cout << "\33[2K\r";
+// }
 
 void read_input(Client &client, Server &server);
-
 
 // void manipulateInput(char input[100], Client &client, Server &server){
 //     std::string word(input);
@@ -204,10 +185,10 @@ void runManagerMode(bool isDocker = false) {
     cout << "Manager mode" << (isDocker ? " [Docker]" : "") << endl;
     Server server;
     Client client;
-    type = 1;
+    type = Type::MANAGER;
 
     thread t1(Discovery::discoverParticipants, ref(server));
-    thread t2(Monitoring::requestParticipantsSleepStatus, ref(server));
+    // thread t2(Monitoring::requestParticipantsSleepStatus, ref(server));
     thread t3(Management::display, ref(server));
     thread t5(&Server::waitForRequests, &server);
     thread t6(read_input, ref(client), ref(server));
@@ -219,7 +200,7 @@ void runManagerMode(bool isDocker = false) {
     // thread t6(read_input, ref(client), ref(server));
 
     t1.join();
-    t2.join();
+    // t2.join();
     t3.join();
     t5.join();
     t6.join();
@@ -231,7 +212,7 @@ void runClientMode(int argc, bool isDocker = false) {
     cout << "Client mode" << (isDocker ? " [Docker]" : "") << endl;
     Server server;
     Client client;
-    type = 0;
+    type = Type::PARTICIPANT;
 
     thread t3(Discovery::searchForManager, ref(client), argc);
     thread t4(&Client::waitForRequests, &client);
@@ -258,6 +239,8 @@ int main(int argc, char **argv)
         cout << "Invalid initialization!" << endl;
         return 1;
     }
+    
+    Station station;
 
     bool isDocker = (argc == 3 && strcmp(argv[2], "docker") == 0);
 

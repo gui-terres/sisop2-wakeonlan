@@ -1,12 +1,19 @@
-#include "../../stations/stations.hpp"
 #include "./discovery.hpp"
+#include <thread>
+#include <chrono>
 
-static void Discovery::discoverParticipants(Server &manager) {
-    manager.sendSocket(BROADCAST_ADDR);
+void Discovery::discoverParticipants(Server &manager) {
+    manager.collectParticipants(BROADCAST_ADDR);
 }
 
-static void Discovery::searchForManager(Client &client, int argc) {
-    while (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER)) {
-        client.sendSocket(argc);
+void Discovery::searchForManager(Client &client, int argc) {
+    while (true){
+        if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER)) {
+            std::cout << "clientetetete oiii server??????" << std::endl;
+            client.enterWakeOnLan(argc);
+        } else{
+            std::cout << "já tenho manager!!!!" << std::endl;
+            std::cout << client.managerInfo.ipAddress << std::endl;
+        }
     }
 }

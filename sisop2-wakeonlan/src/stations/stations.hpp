@@ -4,11 +4,12 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <cstring>
 
-#define PORT 5000
-#define PORT_S 5001
-#define PORT_E 5002
-#define PORT_PD 5003
+#define PORT_SOCKET 5000
+#define PORT_SLEEP 5001
+#define PORT_EXIT 5002
+#define PORT_DATA 5003
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -22,6 +23,12 @@ enum Status {
     AWAKEN
 };
 
+enum Type {
+    PARTICIPANT,
+    MANAGER
+};
+
+
 enum Request {
     SLEEP_STATUS,
     EXIT,
@@ -32,7 +39,22 @@ struct StationData {
     char hostname[MAX_HOSTNAME_SIZE];
     char ipAddress[IP_ADDRESS_SIZE];
     char macAddress[MAC_ADDRESS_SIZE];
+    Type type;
     Status status;
+
+    // Definição do operador `==`
+    bool operator==(const StationData& other) const {
+        if (std::strcmp(ipAddress, other.ipAddress) != 0) {
+            return false;
+        }
+        if (std::strcmp(macAddress, other.macAddress) != 0) {
+            return false;
+        }
+        if (std::strcmp(hostname, other.hostname) != 0) {
+            return false;
+        }
+        return true;
+    }    
 };
 
 struct RequestData {
@@ -45,15 +67,19 @@ public:
     int getIpAddress(StationData &data);
     int getMacAddress(int sockfd, char *macAddress, size_t size);
     int getStatus(Status &status);
+    int createSocket(int protocol = SOCK_DGRAM, int port = 0);
+    void setSocketOptions(int sockfd);
+    int sendData(int sockfd, const void* data, size_t dataSize, const char* addr, int port);
+    ssize_t receiveData(int sockfd, void* buffer, size_t bufferSize, struct sockaddr_in* from, socklen_t* fromlen);
 };
 
-class Server : public Station {
+class Server: public Station {
 public:
     std::vector<StationData> discoveredClients;
 
-    int sendSocket(const char* addr);
+    int collectParticipants(const char* addr);
     int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
-    std::vector<StationData> getDiscoveredClients();
+    std::vector<StationData>& getDiscoveredClients();
     int sendWoLPacket(StationData &client);
     void waitForRequests();
     StationData* requestParticipantData(const char *ipAddress);
@@ -68,7 +94,7 @@ public:
         status: Status::ASLEEP
     };
 
-    int sendSocket(int argc);
+    int enterWakeOnLan(int argc);
     void waitForRequests();
     int sendExitRequest(const char *ipAddress);
     void waitForParticipantDataRequests();

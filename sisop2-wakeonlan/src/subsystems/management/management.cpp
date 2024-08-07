@@ -1,22 +1,24 @@
 #include "management.hpp"
-#include "../interface/interface.hpp"
-#include "../monitoring/monitoring.hpp"
 
-static void Management::display(Server &server) {
+using namespace std;
+
+std::mutex cout_mutex;
+
+void Management::display(Server &server) {
     while (true) {
-        Monitoring.requestParticipantsSleepStatus(server);
+        Monitoring::requestParticipantsSleepStatus(server);
         std::lock_guard<std::mutex> lock(cout_mutex);
-        drawInterface();
+        // drawInterface();
         cout << "Para sair, digite EXIT" << endl;
-        cout << "Para acordar um computador, digite WAKE + endereço IP" << endl;
+        cout << "Para acordar um computador, digite WAKE + hostname" << endl;
 
-        if (!discoveredClients.empty())
+        if (!server.discoveredClients.empty())
             drawTable(server);
         else
           cout << endl << "Sem clientes no momento!" << endl << endl << endl;
 
         cout << endl;
-        this_thread::sleep_for(chrono::seconds(5));
+        this_thread::sleep_for(chrono::seconds(1));
     }
 }
 

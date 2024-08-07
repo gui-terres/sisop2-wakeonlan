@@ -20,13 +20,19 @@ WORKDIR /app
 # Copie o Makefile e os arquivos de código fonte mantendo a estrutura
 COPY makefile /app/Makefile
 COPY main.cpp /app/
-COPY subsystems/discovery/client.cpp /app/subsystems/discovery/
-COPY subsystems/discovery/server.cpp /app/subsystems/discovery/
-COPY subsystems/discovery/station.cpp /app/subsystems/discovery/
+COPY stations/client.cpp /app/stations/
+COPY stations/server.cpp /app/stations/
+COPY stations/station.cpp /app/stations/
+COPY stations/stations.hpp /app/stations/
+COPY subsystems/discovery/discovery.cpp /app/subsystems/discovery/
 COPY subsystems/discovery/discovery.hpp /app/subsystems/discovery/
 # Se houver o arquivo interface.cpp, descomente a linha abaixo:
 COPY subsystems/interface/interface.cpp /app/subsystems/interface/
 COPY subsystems/interface/interface.hpp /app/subsystems/interface/
+COPY subsystems/management/management.cpp /app/subsystems/management/
+COPY subsystems/management/management.hpp /app/subsystems/management/
+COPY subsystems/monitoring/monitoring.cpp /app/subsystems/monitoring/
+COPY subsystems/monitoring/monitoring.hpp /app/subsystems/monitoring/
 
 # Compile o projeto usando o Makefile
 RUN make

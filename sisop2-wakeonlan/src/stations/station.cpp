@@ -106,3 +106,51 @@ int Station::getStatus(Status &status)
     
     return 0;
 }
+
+int Station::createSocket(int protocol = SOCK_DGRAM, int port = 0) {
+    int sockfd = socket(AF_INET, protocol, 0);
+    if (sockfd == -1) {
+        cerr << "ERROR opening socket." << endl;
+        return -1;
+    }
+
+    if (port != 0) {
+        struct sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(port);
+        addr.sin_addr.s_addr = INADDR_ANY;
+        bzero(&(addr.sin_zero), 8);
+
+        if (bind(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr)) < 0) {
+            cerr << "ERROR on binding socket." << endl;
+            close(sockfd);
+            return -1;
+        }
+    }
+
+    return sockfd;
+}
+
+void Station::setSocketOptions(int sockfd) {
+    const int optval{1};
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
+        throw std::runtime_error("Failed to set socket options");
+    }
+}
+
+int Station::sendData(int sockfd, const void* data, size_t dataSize, const char* addr, int port) {
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(port);
+    dest_addr.sin_addr.s_addr = inet_addr(addr);
+    bzero(&(dest_addr.sin_zero), 8);
+
+    return sendto(sockfd, data, dataSize, 0, (struct sockaddr *)&dest_addr, sizeof(struct sockaddr_in));
+}
+
+ssize_t Station::receiveData(int sockfd, void* buffer, size_t bufferSize, struct sockaddr_in* from, socklen_t* fromlen) {
+    return recvfrom(sockfd, buffer, bufferSize, 0, (struct sockaddr *)from, fromlen);
+}
+
+
+

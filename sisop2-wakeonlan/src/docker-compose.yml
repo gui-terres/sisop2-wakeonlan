@@ -7,7 +7,10 @@ services:
     networks:
       lan:
         ipv4_address: 172.18.0.15
-
+    depends_on:
+      - participant1
+      - participant2
+      
   participant1:
     build: .
     container_name: participant1
@@ -16,8 +19,6 @@ services:
     networks:
       lan:
         ipv4_address: 172.18.0.7
-    depends_on:
-      - manager
 
   participant2:
     build: .
@@ -27,8 +28,7 @@ services:
     networks:
       lan:
         ipv4_address: 172.18.0.12
-    depends_on:
-      - manager
+
       
 networks:
   lan:
