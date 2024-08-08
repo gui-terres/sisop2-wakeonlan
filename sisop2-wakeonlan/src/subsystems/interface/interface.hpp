@@ -1,30 +1,17 @@
 #ifndef INTERFACE_HPP
 #define INTERFACE_HPP
 
+#include "../../stations/stations.hpp"
+#include "../monitoring/monitoring.hpp"
+
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <termios.h>
-#include <cstdlib> // Para a função exit()
+#include <cstdlib> 
 #include <unistd.h>
 
-#define NUM_BUTTONS 4
-#define BUTTON_SIZE 20
-
-// Estrutura para armazenar informações de cada botão
-struct Button {
-    std::string label;
-
-    // Construtor para inicializar o botão
-    Button(const std::string& lbl = "")
-        : label(lbl) {}
-};
-
-// Função para inicializar os botões
-void initializeButtons();
-
-// Declaração do array global de botões
-extern Button* buttons;
+extern Type type;
 
 // Função para limpar a tela do terminal
 void clearScreen();
@@ -33,18 +20,30 @@ void clearScreen();
 void drawHeader();
 
 // Função para desenhar a interface com os botões
-void drawInterface(int selectedButton);
+void drawInterface();
 
-// Função para configurar o terminal para o modo "raw"
-void enableRawMode();
+// Função para configurar o terminal para ler os caracteres 
+void setTermNoBufferedInput();
 
-// Função para restaurar as configurações originais do terminal
-void disableRawMode();
+// Função para restaurar terminal
+void restoreTermSettings();
 
-// Função para processar a entrada do usuário e atualizar o botão selecionado
-void processInput(char input, int &selectedButton, bool isArrowKey);
+void drawTableHeader();
 
-// Função para verificar se o caractere é uma seta do teclado
-bool isArrowKey(char input);
+void drawTableData(Server &server);
+
+void drawTable(Server &server);
+
+void clear_line();
+
+void manipulateInput(char input[100], Client &client, Server &server);
+
+void read_input(Client &client, Server &server);
+
+void handleSigInt(int signum);
+
+void isCTRLc();
+
+void isCTRLcT(Client &client);
 
 #endif // INTERFACE_HPP

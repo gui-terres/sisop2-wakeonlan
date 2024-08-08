@@ -1,49 +1,17 @@
 #ifndef DISCOVERY_H
 #define DISCOVERY_H
 
-#include <string>
+#include "../../stations/stations.hpp"
+#include <cstring>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
-#define SERVER_PORT 4000
-#define MAC_ADDRESS_SIZE 18
-
-using std::string;
-
-namespace {
-    enum Status {
-        ASLEEP,
-        AWAKEN
-    };
-
-    using DiscoveredData = struct {
-        std::string hostname;
-        std::string ipAddress;
-        char macAddress[MAC_ADDRESS_SIZE];
-        Status status;
-    };
-
-    Status intToStatus(int value) {
-        switch(value) {
-            case 0:
-                return Status::ASLEEP;
-            default:
-                return Status::AWAKEN;
-        }
-    }
-}
-
-class Server {
-    public:
-        int sendSocket();
-};
-
-class Client {
-    private:
-        int getHostname(char *buffer, size_t bufferSize, string &hostname);
-        int getIpAddress(string &ipAddress);
-        int getMacAddress(int sockfd, char *macAddress, size_t size);
-        int getStatus(Status &status);
-    public:
-        int sendSocket(int argc, const char *leaderHostname);
+class Discovery {
+public:
+    static void discoverParticipants(Server &manager);
+    static void searchForManager(Client &client, int argc);
+    static void enterWakeOnLan(Client &client, int argc);
 };
 
 #endif // DISCOVERY_H

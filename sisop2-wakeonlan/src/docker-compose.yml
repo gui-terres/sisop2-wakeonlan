@@ -1,0 +1,38 @@
+services:
+  manager:
+    build: .
+    container_name: manager
+    hostname: manager
+    command: ["/app/sleep_server", "manager", "docker"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.15
+    depends_on:
+      - participant1
+      - participant2
+      
+  participant1:
+    build: .
+    container_name: participant1
+    hostname: participant1
+    command: ["/app/sleep_server", "172.18.0.7", "docker"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.7
+
+  participant2:
+    build: .
+    container_name: participant2
+    hostname: participant2
+    command: ["/app/sleep_server", "172.18.0.12", "docker"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.12
+
+      
+networks:
+  lan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16

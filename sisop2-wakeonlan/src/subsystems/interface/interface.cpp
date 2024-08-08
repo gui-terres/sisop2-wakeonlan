@@ -1,22 +1,21 @@
 #include "interface.hpp"
 
-// Definição do ponteiro global para o array de botões
-Button* buttons = nullptr;
+#include <iostream>
+#include <cstdlib>
+#include <string.h>
+#include <thread>
+#include <vector>
+#include <iomanip>
+#include <mutex>
+#include <csignal> // Para signal e SIGINT
 
-// Função para inicializar os botões
-void initializeButtons() {
-    buttons = static_cast<Button*>(malloc(NUM_BUTTONS * sizeof(Button)));
+using namespace std;
 
-    if (buttons == nullptr) {
-        std::cerr << "Erro ao alocar memória para os botões!" << std::endl;
-        exit(1);
-    }
-
-    new (&buttons[0]) Button{"Acordar uma máquina"};
-    new (&buttons[1]) Button{"Listar máquinas"};
-    new (&buttons[2]) Button{"Ativar linha de comando"};
-    new (&buttons[3]) Button{"Sair"};
-}
+std::string current_input;
+// int type;
+char input[100];
+int n = 0;
+bool ctrl = 0;
 
 void clearScreen() {
     std::cout << "\033[2J\033[H"; // Código de escape ANSI para limpar a tela
@@ -24,121 +23,153 @@ void clearScreen() {
 
 void drawHeader() {
     std::cout << std::endl;
-std::cout << "                                                                              *#&@@@@@@@%                                                     " << std::endl;
-std::cout << "                                                                           #@@@@@@@@@@@@&                                                     " << std::endl;
-std::cout << "                                                                         ,@@@@@@@@@@@@@@&                                                     " << std::endl;
-std::cout << "                           &@@@@@@@.  ,@@@%/      ,#@@@@@@@@@@@%*        @@@@@@@@@/                                                           " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@. &@@@@@@@@@@@@@@@@@@.     @@@@@@@@@.                                                           " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@@@@@@@@@@@@@@@@@@@@@@/    @@@@@@@@@@@@@@@&                                                     " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@@@,        .@@@@@@@@@@.   @@@@@@@@@@@@@@@&                                                     " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@&            @@@@@@@@@,   @@@@@@@@@*,,,,,.                                                     " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@*            &@@@@@@@@*   @@@@@@@@@.                                                           " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            &@@@@@@@@*   @@@@@@@@@.                                                           " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            &@@@@@@@@*   @@@@@@@@@.                                                           " << std::endl;
-std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            %&&&&&&&&*   &&&&&&&&&.                                                           " << std::endl;
-std::cout << "                 \033[31m*((*\033[0m      @@@@@@@@.  ,@@@@@@@@,      \033[30m...........................................\033[0m               " << std::endl;
-std::cout << "              \033[31m*########,\033[0m   @@@@@@@@.  ,@@@@@@@@,        \033[31mINF01151 - Sistemas Operacionais Ii N - Turma A (2024/1)\033[0m" << std::endl;
-std::cout << "              \033[31m(########/\033[0m   @@@@@@@@.  ,@@@@@@@@,        \033[31mTrabalho prático da disciplina\033[0m                          " << std::endl;
-std::cout << "               \033[31m/######*\033[0m    @@@@@@@@.  ,@@@@@@@@,        Arthur, Cauê, Guilherme e Júlia                                        " << std::endl;
-std::cout << std::endl;
-std::cout << "                                                         _       __      __              ____              __                             " << std::endl;
-std::cout << "                                                        | |     / /___ _/ /_____        / __ \\____        / /   ____ _____               " << std::endl;
-std::cout << "                                                        | | /| / / __ `/ //_/ _ \\______/ / / / __ \\______/ /   / __ `/ __ \\            " << std::endl;
-std::cout << "                                                        | |/ |/ / /_/ / ,< /  __/_____/ /_/ / / / /_____/ /___/ /_/ / / / /               " << std::endl;
-std::cout << "                                                        |__/|__/\\__,_/_/|_|\\___/      \\____/_/ /_/     /_____/\\__,_/_/ /_/            " << std::endl;
-std::cout << "                                                                              __           __                                             " << std::endl;
-std::cout << "                                                            ____  ____ ______/ /____     <  /                                             " << std::endl;
-std::cout << "                                                           / __ \\/ __ `/ ___/ __/ _ \\    / /                                            " << std::endl;
-std::cout << "                                                          / /_/ / /_/ / /  / /_/  __/   / /                                               " << std::endl;
-std::cout << "                                                         / .___/\\__,_/_/   \\__/\\___/   /_/                                             " << std::endl;
-std::cout << "                                                        /_/                                                                               " << std::endl;
-std::cout << std::endl;
-std::cout << std::endl;
+    std::cout << "                                                                              *#&@@@@@@@%                                                     " << std::endl;
+    std::cout << "                                                                           #@@@@@@@@@@@@&                                                     " << std::endl;
+    std::cout << "                                                                         ,@@@@@@@@@@@@@@&                                                     " << std::endl;
+    std::cout << "                           &@@@@@@@.  ,@@@%/      ,#@@@@@@@@@@@%*        @@@@@@@@@/                                                           " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@. &@@@@@@@@@@@@@@@@@@.     @@@@@@@@@.                                                           " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@@@@@@@@@@@@@@@@@@@@@@/    @@@@@@@@@@@@@@@&                                                     " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@@@,        .@@@@@@@@@@.   @@@@@@@@@@@@@@@&                                                     " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@&            @@@@@@@@@,   @@@@@@@@@*,,,,,.                                                     " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@*            &@@@@@@@@*   @@@@@@@@@.                                                           " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            &@@@@@@@@*   @@@@@@@@@.                                                           " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            &@@@@@@@@*   @@@@@@@@@.                                                           " << std::endl;
+    std::cout << "                           @@@@@@@@.  ,@@@@@@@@,            %&&&&&&&&*   &&&&&&&&&.                                                           " << std::endl;
+    std::cout << "                 \033[31m*((*\033[0m      @@@@@@@@.  ,@@@@@@@@,      \033[30m...........................................\033[0m               " << std::endl;
+    std::cout << "              \033[31m*########,\033[0m   @@@@@@@@.  ,@@@@@@@@,        \033[31mINF01151 - Sistemas Operacionais Ii N - Turma A (2024/1)\033[0m" << std::endl;
+    std::cout << "              \033[31m(########/\033[0m   @@@@@@@@.  ,@@@@@@@@,        \033[31mTrabalho prático da disciplina\033[0m                          " << std::endl;
+    std::cout << "               \033[31m/######*\033[0m    @@@@@@@@.  ,@@@@@@@@,        Arthur, Guilherme e Júlia                                        " << std::endl;
+    std::cout << std::endl;
+    std::cout << "                                                         _       __      __              ____              __                                 " << std::endl;
+    std::cout << "                                                        | |     / /___ _/ /_____        / __ \\____        / /   ____ _____                   " << std::endl;
+    std::cout << "                                                        | | /| / / __ `/ //_/ _ \\______/ / / / __ \\______/ /   / __ `/ __ \\                " << std::endl;
+    std::cout << "                                                        | |/ |/ / /_/ / ,< /  __/_____/ /_/ / / / /_____/ /___/ /_/ / / / /                   " << std::endl;
+    std::cout << "                                                        |__/|__/\\__,_/_/|_|\\___/      \\____/_/ /_/     /_____/\\__,_/_/ /_/                " << std::endl;
+    std::cout << "                                                            ____  ____ ______/ /____     |__ \\                                               " << std::endl;
+    std::cout << "                                                           / __ \\/ __ `/ ___/ __/ _ \\    __/ /                                              " << std::endl;
+    std::cout << "                                                          / /_/ / /_/ / /  / /_/  __/   / __/                                                 " << std::endl;
+    std::cout << "                                                         / .___/\\__,_/_/   \\__/\\___/   /____/                                              " << std::endl;
+    std::cout << "                                                        /_/                                                                                   " << std::endl; 
+    std::cout << std::endl;
+    std::cout << std::endl;
+    }    
 
-}
-
-void drawInterface(int selectedButton) {
-    
-    clearScreen(); // Limpa a tela antes de desenhar a interface
-    // Define as cores ANSI para as cores de fundo e texto
+void drawInterface(){
+    clearScreen(); 
     drawHeader();
-    const std::string SELECTED_COLOR = "\033[48;2;220;50;50;38;2;0;0;0m"; // Fundo vermelho, texto preto
-    const std::string DEFAULT_COLOR = "\033[49;39m"; // Fundo padrão, texto padrão
-    const std::string SPACING = "    "; // Espaçamento entre os botões
+}
 
-    // Desenha os botões
-    for (int i = 0; i <= (NUM_BUTTONS-1); ++i) {
-        // Define o texto do botão e a cor de fundo
-        std::string buttonText = (i == selectedButton - 1) ? SELECTED_COLOR + "[ " + buttons[i].label + " ]" + DEFAULT_COLOR : "[ " + buttons[i].label + " ]";
+// Função para configurar o terminal para ler uma tecla sem esperar por '\n'
+void setTermNoBufferedInput() {
+    struct termios t;
+    tcgetattr(STDIN_FILENO, &t);
+    t.c_lflag &= ~(ICANON | ECHO); // Desliga modo canônico e echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+}
 
-        // Imprime o botão na tela com o espaçamento
-        std::cout << buttonText << SPACING;
+// Função para restaurar as configurações originais do terminal
+void restoreTermSettings() {
+    struct termios t;
+    tcgetattr(STDIN_FILENO, &t);
+    t.c_lflag |= (ICANON | ECHO); // Liga modo canônico e echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+}
+
+void drawTableHeader() {
+    std::cout << std::endl;
+    std::cout << " ___________________________________________________________" << std::endl;
+    std::cout << "|              |                   |               |        |" << std::endl;
+    std::cout << "|   Hostname   |   Endereço MAC    |  Endereço IP  | Status |" << std::endl;
+    std::cout << "|______________|___________________|_______________|________|" << std::endl;
+}
+
+void drawTableData(Server &server) {
+    for (const auto &client : server.discoveredClients) {
+        std::cout << "|              |                   |               |        |" << std::endl;
+        std::cout << "| " << std::setw(12) << client.hostname
+                 << " | " << std::setw(17) << client.macAddress
+                 << " | " << std::setw(13) << client.ipAddress
+                 << " | " << std::setw(6) << client.status
+                 << " |"  << std::endl;
+        std::cout << "|______________|___________________|_______________|________|" << std::endl;
     }
-    // Mostra o cursor para indicar a posição do usuário
-    std::cout << std::endl << std::endl << "Selecione um botão usando as teclas de seta ou WASD." << std::endl;
 }
 
-// Estrutura para armazenar as configurações originais do terminal
-struct termios originalTermios;
-
-void enableRawMode() {
-    struct termios raw;
-    tcgetattr(STDIN_FILENO, &originalTermios); // Salva as configurações originais do terminal
-    tcgetattr(STDIN_FILENO, &raw);
-    raw.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+void drawTable(Server &server) {
+    drawTableHeader();
+    drawTableData(server);
 }
 
-void disableRawMode() {
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &originalTermios); // Restaura as configurações originais do terminal
+
+// =============
+
+void clear_line() {
+    std::cout << "\33[2K\r";
 }
 
-// Função para verificar se o caractere é uma seta do teclado
-bool isArrowKey(char input) {
-    // Caracteres de escape ANSI para setas do teclado
-    const char ARROW_ESCAPE = '\x1b';
-    const char LEFT_BRACKET = '[';
+void read_input(Client &client, Server &server);
 
-    // Verifica se o caractere é uma sequência de escape ANSI para setas
-    if (input == ARROW_ESCAPE) {
-        char nextInput;
-        std::cin >> std::noskipws >> nextInput; // Lê o próximo caractere sem ignorar espaços em branco
-        return (nextInput == LEFT_BRACKET);
-    }
-
-    return false;
-}
-
-void processInput(char input, int &selectedButton, bool isArrowKey) {
-    // Verifica se o próximo caractere é uma sequência de escape para as teclas de seta
-    char nextInput;
-
-    if (isArrowKey) {        
-        if (input == 'C' || input == 'A') {
-            // Se pressionar a seta para a direita ou para cima
-            if (selectedButton < NUM_BUTTONS) {
-                selectedButton++;
-            }
-        } else if (input == 'D' || input == 'B') {
-            // Se pressionar a seta para a esquerda ou para baixo
-            if (selectedButton > 1) {
-                selectedButton--;
-            }
-        }
+void manipulateInput(char input[100], Client &client, Server &server){
+    std::string word(input);
+    bool startsWithWake = (word.length() >= 4 && word.substr(0, 4) == "WAKE");
+    if (word == "EXIT") {
+        std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
+        client.sendExitRequest(BROADCAST_ADDR);
+        restoreTermSettings();
+        std::exit(EXIT_SUCCESS);
+    } else if (startsWithWake && type == Type::MANAGER ) {
+        word.erase(0, 5);
+        Monitoring::sendWoLPacket(server, word);
     } else {
-        // Atualiza o botão selecionado com base na entrada do usuário
-        if (input == 'd' || input == 'D' || input == 'w' || input == 'W') {
-            // Se pressionar 'd', 'D', 'w' ou 'W'
-            if (selectedButton < NUM_BUTTONS) {
-                selectedButton++;
+        std::cout << "Comando inválido!" << std::endl;
+    }
+    read_input(client, server);
+}
+
+void read_input(Client &client, Server &server) {
+    setTermNoBufferedInput(); // Configura terminal para entrada sem buffer
+    n=0;
+    char ch;
+    for (int i = 0; i < 100; ++i) {
+        input[i] = '\0';
+    }
+    while (true) {
+        if (read(STDIN_FILENO, &ch, 1) == 1) { 
+            if (ch == '\b') { 
+                if (n > 0) {
+                    cout << "aaaa" << endl;
+                    n--;
+                    input[n] = '\0';
+                }
+            } else if (ch == '\n') { 
+                manipulateInput(input,client, server);
+                break; 
+            } else {
+                input[n++] = ch; 
+                input[n] = '\0'; 
             }
-        } else if (input == 'a' || input == 'A' || input == 's' || input == 'S') {
-            // Se pressionar 'a', 'A', 's' ou 'S'
-            if (selectedButton > 1) {
-                selectedButton--;
-            }
-        } else {
-            
+            std::cout << "\033[1F"; // Move o cursor para cima em uma linha
+            std::cout << "\033[2K"; // Limpa a linha atual
+            cout << string(input) << endl;
+        }
+    }
+}
+
+void handleSigInt(int signum) {
+    ctrl = 1;
+}
+
+void isCTRLc() {
+    signal(SIGINT, handleSigInt);
+}
+
+void isCTRLcT(Client &client) {
+    while (true) {
+        if(ctrl) {
+            std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
+            client.sendExitRequest(client.managerInfo.ipAddress);
+            restoreTermSettings();
+            std::exit(EXIT_SUCCESS); 
         }
     }
 }

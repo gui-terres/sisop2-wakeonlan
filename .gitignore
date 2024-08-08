@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+sisop2-wakeonlan/src/main
+sisop2-wakeonlan/src/sleep_server
