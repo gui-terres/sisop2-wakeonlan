@@ -76,7 +76,7 @@ int Client::getManagerData() {
     if (sockfd == -1) return -2;
 
     struct timeval tv;
-    tv.tv_sec = 5;  // Tempo de espera em segundos
+    tv.tv_sec = 1;  // Tempo de espera em segundos
     tv.tv_usec = 0; // Tempo de espera em microsegundos
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
         cerr << "ERROR setting socket timeout." << endl;
@@ -89,21 +89,17 @@ int Client::getManagerData() {
 
     memset(&managerInfo, 0, sizeof(managerInfo));
 
-    while (true) {
-        ssize_t bytesReceived = recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, &clilen);
-        if (bytesReceived < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                cerr << "ERROR: Timeout receiving response. Retrying..." << endl;
-                continue;  // Continue trying to receive data
-            } else {
-                cerr << "ERROR receiving response: " << strerror(errno) << endl;
-                close(sockfd);
-                return -2;
-            }
+    ssize_t bytesReceived = recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, &clilen);
+    if (bytesReceived < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            // cerr << "ERROR: Timeout receiving response. Retrying..." << endl;
+            close(sockfd);
+            return -1;  // Continue trying to receive data
         } else {
-            // Data received successfully
-            break;
-        }
+            cerr << "ERROR receiving response: " << strerror(errno) << endl;
+            close(sockfd);
+            return -2;
+        }    
     }
 
     cout << "Manager Info" << endl;

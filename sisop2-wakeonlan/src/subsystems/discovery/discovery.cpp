@@ -2,20 +2,16 @@
 #include <thread>
 #include <chrono>
 
+using namespace std;
+
 void Discovery::discoverParticipants(Server &manager) {
     manager.collectParticipants(BROADCAST_ADDR);
 }
 
 void Discovery::searchForManager(Client &client, int argc) {
     while (true){
-        //checar timeout aqui
-        if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER) || !strcmp(client.managerInfo.ipAddress, "")) {
-            // std::cout << "clientetetete oiii server??????" << std::endl;
-            client.getManagerData();
-        } else{
-            // std::cout << "já tenho manager!!!!" << std::endl;
-            // std::cout << client.managerInfo.ipAddress << std::endl;
-        }
+        client.getManagerData();
+        this_thread::sleep_for(chrono::seconds(1));
     }
 }
 

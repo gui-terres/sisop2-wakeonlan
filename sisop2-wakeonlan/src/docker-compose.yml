@@ -10,7 +10,19 @@ services:
     depends_on:
       - participant1
       - participant2
-      
+
+  manager2:
+    build: .
+    container_name: manager2
+    hostname: manager2
+    command: ["/app/sleep_server", "manager", "docker"]
+    networks:
+      lan:
+        ipv4_address: 172.18.0.16
+    depends_on:
+      - participant1
+      - participant2
+
   participant1:
     build: .
     container_name: participant1
@@ -29,7 +41,6 @@ services:
       lan:
         ipv4_address: 172.18.0.12
 
-      
 networks:
   lan:
     driver: bridge

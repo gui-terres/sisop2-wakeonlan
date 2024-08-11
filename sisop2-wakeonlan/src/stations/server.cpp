@@ -175,9 +175,12 @@ int Server::sendManagerInfo() {
     // cout << "Hostname: " << pcData.hostname << endl;
     // cout << "IP Address: " << pcData.ipAddress << endl;
     // cout << "Mac Address: " << pcData.macAddress << endl;
-
-    if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
-        cerr << "ERROR on sendto." << endl;
+    while (true) {
+        if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0){
+            cerr << "ERROR on sendto." << endl;
+            break;
+        }
+    }
 
     close(sockfd);
     return 0;
