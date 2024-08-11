@@ -50,20 +50,22 @@ void Client::waitForSleepRequests() {
     int sockfd = createSocket(PORT_SLEEP);
     if (sockfd == -1) return;
 
-    while (true) {
+    while (!stopThreads.load()) {
+        // Adicione um log ou printf para verificar o status de stopThreads
+        std::cout << "stopThreads: " << stopThreads.load() << std::endl;
+
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
+
         if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom." << endl;
+            cerr << "ERROR on recvfrom in waitForSleepRequests." << endl;
             continue;
         }
 
         if (request.request == Request::SLEEP_STATUS) {
             Status status = Status::AWAKEN;
-            // printf("oiii\n");
-            // cout << inet_ntoa(from.sin_addr) << endl;
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
         }
     }
@@ -145,4 +147,8 @@ int Client::sendExitRequest(const char *ipAddress) {
 
     close(sockfd);
     return 0;
+}
+
+void Client::startElection() {
+    Station::startElection();
 }

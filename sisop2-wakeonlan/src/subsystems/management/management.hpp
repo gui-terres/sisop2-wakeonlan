@@ -12,6 +12,7 @@ class Management {
 public:
     static void displayServer(Server &server);
     static void displayClient(Client &client);
+    static void checkAndElectClient(Client &client);
 };
 
 #endif // MANAGEMENT_H

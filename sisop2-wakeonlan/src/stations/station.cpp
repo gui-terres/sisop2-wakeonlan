@@ -17,6 +17,15 @@
 
 #define BUFFER_SIZE 256
 
+// Define the static IP array for testing
+std::vector<std::string> Station::stationIPs 
+// = {
+//     "172.18.0.15",
+//     "172.18.0.12",
+//     "172.18.0.7"
+// }
+;
+
 using namespace std;
 
 int Station::getHostname(char *buffer, size_t bufferSize, StationData &data)
@@ -107,12 +116,23 @@ int Station::getStatus(Status &status)
     return 0;
 }
 
+
+void setSocketTimeout(int sockfd, int timeoutSec) {
+    struct timeval timeout;
+    timeout.tv_sec = timeoutSec;
+    timeout.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+}
+
+
 int Station::createSocket(int port) {
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd == -1) {
         cerr << "ERROR opening socket." << endl;
         return -1;
     }
+
+    setSocketTimeout(sockfd, 1); // Timeout de 1 segundo
 
     if (port != 0) {
         struct sockaddr_in addr;
@@ -138,35 +158,58 @@ void Station::setSocketBroadcastOptions(int sockfd) {
     }
 }
 
-// void Station::waitForParticipantDataRequests() {
-//     int sockfd = createSocket(PORT_DATA);
-//     if (sockfd == -1) return;
+void Station::sendMessage(const string& destIP, Message msg, int port) {
+    int sockfd = createSocket(0);
 
-//     while (true) {
-//         RequestData request;
-//         struct sockaddr_in from;
-//         socklen_t fromlen = sizeof(from);
-//         ssize_t bytesReceived = receiveData(sockfd, &request, sizeof(request), &from, &fromlen);
-//         if (bytesReceived < 0) {
-//             cerr << "ERROR on recvfrom." << endl;
-//             continue;
-//         }
+    struct sockaddr_in destAddr;
+    destAddr.sin_family = AF_INET;
+    destAddr.sin_port = htons(port);
+    inet_pton(AF_INET, destIP.c_str(), &destAddr.sin_addr);
 
-//         if (request.request == Request::PARTICIPANT_DATA) {
-//             char buffer[BUFFER_SIZE];
+    sendto(sockfd, &msg, sizeof(msg), 0, (struct sockaddr*)&destAddr, sizeof(destAddr));
+    close(sockfd);
+}
 
-//             StationData pcData;
-//             getHostname(buffer, BUFFER_SIZE, pcData);
-//             getIpAddress(pcData);
-//             getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-//             pcData.status = Status::AWAKEN;
+Message Station::receiveMessage(int port) {
+    int sockfd = createSocket(port);
+    struct sockaddr_in senderAddr;
+    socklen_t addrLen = sizeof(senderAddr);
+    Message msg;
 
-//             sendData(sockfd, &pcData, sizeof(pcData), inet_ntoa(from.sin_addr), PORT_DATA);
-//         }
-//     }
+    recvfrom(sockfd, &msg, sizeof(msg), 0, (struct sockaddr*)&senderAddr, &addrLen);
+    close(sockfd);
 
-//     close(sockfd);
-// }
+    return msg;
+}
+
+void Station::startElection() {
+    id = getpid();  // Get the process ID
+    cout << "Station " << id << " is starting an election." << endl;
+
+    bool higherExists = false;
+    for (const string& ip : stationIPs) {
+        cout << ip << "oiiii" << endl;
+        // Create a message with the type and PID
+        Message electionMsg = {ELECTION, id};
+        
+        // Send the message to the current IP address
+        sendMessage(ip, electionMsg, PORT_ELECTION);
+        
+        // Mark that a higher ID exists
+        higherExists = true;
+    }
 
 
+    if (!higherExists) {
+        // cout << "here" << endl;
+        type = Type::MANAGER;
+        sendCoordinatorMessage();
+    }
+}
 
+void Station::sendCoordinatorMessage() {
+    Message coordMsg = {COORDINATOR, id};
+    for (const string& ip : stationIPs) {
+        sendMessage(ip, coordMsg, PORT_ELECTION);
+    }
+}

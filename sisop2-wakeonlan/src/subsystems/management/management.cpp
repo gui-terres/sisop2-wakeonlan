@@ -5,10 +5,10 @@ using namespace std;
 std::mutex cout_mutex;
 
 void Management::displayServer(Server &server) {
-    while (true) {
+    while (!stopThreads.load()) {
         Monitoring::requestParticipantsSleepStatus(server);
         std::lock_guard<std::mutex> lock(cout_mutex);
-        // drawInterface();
+        drawInterface();
         cout << "Para sair, digite EXIT" << endl;
         cout << "Para acordar um computador, digite WAKE + hostname" << endl;
 
@@ -23,11 +23,11 @@ void Management::displayServer(Server &server) {
 }
 
 void Management::displayClient(Client &client) {
-    while (true){
+    while (!stopThreads.load()){
         //checar timeout aqui
-        if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER) || !strcmp(client.managerInfo.ipAddress, "")) {
-            // std::cout << "clientetetete oiii server??????" << std::endl;
+        if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER) || !strcmp(client.managerInfo.ipAddress, "")) {            
             cout << "Nenhum líder na rede" << endl;
+
         } else{
             cout << "Hostname: " << client.managerInfo.hostname << endl;
             cout << "IP Address: " << client.managerInfo.ipAddress << endl;
@@ -39,4 +39,16 @@ void Management::displayClient(Client &client) {
     }
 }
 
+void Management::checkAndElectClient(Client &client) {
+    while (!stopThreads.load()) {
+        // Check if there is no leader in the network
+        if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER) || !strcmp(client.managerInfo.ipAddress, "")) {
+            cout << "Nenhum líder na rede. Iniciando eleição..." << endl;
+            // cout << type << endl;
+            client.startElection();
 
+        } 
+        cout << endl;
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+}

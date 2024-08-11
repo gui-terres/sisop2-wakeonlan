@@ -23,43 +23,30 @@ using namespace std;
 // Mutex para sincronização de acesso à lista
 std::mutex mtx;
 
+void Server::updateStationIPs() {
+    std::lock_guard<std::mutex> lock(mtx);
+    stationIPs.clear();  // Clear the previous list
+
+    for (const auto& client : discoveredClients) {
+        stationIPs.push_back(std::string(client.ipAddress));
+    }
+}
+
 int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     int sockfd = createSocket(PORT_SOCKET);
     setSocketBroadcastOptions(sockfd);
-
-    // if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-    //     cerr << "ERROR opening socket." << endl;
-    //     return 1;
-    // }
-
-    // // Permitir pacotes de broadcast
-    // int broadcastPermission = 1;
-    // if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcastPermission, sizeof(broadcastPermission)) < 0) {
-    //     cerr << "ERROR setting broadcast permission." << endl;
-    //     return 1;
-    // }
-
-    // struct sockaddr_in participant_addr;
-    // participant_addr.sin_family = AF_INET;
-    // participant_addr.sin_port = htons(PORT_SOCKET);
-    // participant_addr.sin_addr.s_addr = inet_addr(addr);  // Bind ao endereço local
-    // bzero(&(participant_addr.sin_zero), 8);
-
-    // if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
-    //     cerr << "ERROR on binding socket." << endl;
-    //     return 1;  
-    // }
-
+    
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
 
-    while (true) {
+    while (!stopThreads.load()) {
         StationData receivedData;
         memset(&receivedData, 0, sizeof(receivedData));
 
+        
         ssize_t bytesReceived = recvfrom(sockfd, &receivedData, sizeof(receivedData), 0, (struct sockaddr *)&cli_addr, &clilen);
         if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom." << endl;
+            cerr << "ERROR on recvfrom in collectParticipants." << endl;
             break;
         }
 
@@ -82,6 +69,8 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
             } else {
                 // std::cout << "Item já existe na lista." << std::endl;
             }
+            
+            updateStationIPs();
         }
 
         // char buffer[BUFFER_SIZE];
@@ -175,7 +164,7 @@ int Server::sendManagerInfo() {
     // cout << "Hostname: " << pcData.hostname << endl;
     // cout << "IP Address: " << pcData.ipAddress << endl;
     // cout << "Mac Address: " << pcData.macAddress << endl;
-    while (true) {
+    while (!stopThreads.load()) {
         if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0){
             cerr << "ERROR on sendto." << endl;
             break;
@@ -248,13 +237,13 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client) {
 void Server::waitForRequests() {
     int sockfd = createSocket(PORT_EXIT);
 
-    while (true) {
+    while (!stopThreads.load()) {
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
         if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom." << endl;
+            cerr << "ERROR on recvfrom waitForRequests." << endl;
             continue;
         }
 
@@ -279,64 +268,6 @@ void Server::waitForRequests() {
     close(sockfd);
 }
 
-// StationData* Server::requestParticipantData(const char *ipAddress) {
-//     int sockfd;
-//     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-//         cerr << "ERROR opening socket." << endl;
-//         return nullptr;
-//     }
-
-//     // Definir tempo limite de 5 segundos para recebimento
-//     struct timeval tv;
-//     tv.tv_sec = 5;
-//     tv.tv_usec = 0;
-//     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
-//         cerr << "ERROR setting socket timeout." << endl;
-//         close(sockfd);
-//         return nullptr;
-//     }
-
-//     struct sockaddr_in recipient_addr;
-//     memset(&recipient_addr, 0, sizeof(recipient_addr));
-//     recipient_addr.sin_family = AF_INET;
-//     recipient_addr.sin_port = htons(PORT_DATA);
-//     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
-//         cerr << "ERROR invalid address/ Address not supported." << endl;
-//         close(sockfd);
-//         return nullptr;
-//     }
-
-//     RequestData req;
-//     req.request = Request::PARTICIPANT_DATA;
-
-//     if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
-//         cerr << "ERROR sending request." << endl;
-//         close(sockfd);
-//         return nullptr;
-//     }
-
-//     cout << "Message sent to: " << ipAddress << endl;
-
-//     // Receber resposta
-//     StationData* receivedData = new StationData();
-//     memset(receivedData, 0, sizeof(StationData));
-
-//     sockaddr_in cli_addr;
-//     socklen_t clilen = sizeof(struct sockaddr_in);
-
-//     ssize_t bytesReceived = recvfrom(sockfd, receivedData, sizeof(StationData), 0, (struct sockaddr *)&cli_addr, &clilen);
-//     if (bytesReceived < 0) {
-//         cerr << "ERROR on recvfrom." << endl;
-//         close(sockfd);
-//         delete receivedData;
-//         return nullptr;
-//     }
-
-//     cout << "Hostname: " << receivedData->hostname << endl;
-//     cout << "IP Address: " << receivedData->ipAddress << endl;
-//     cout << "MAC Address: " << receivedData->macAddress << endl;
-//     cout << "Status: " << receivedData->status << endl;
-
-//     close(sockfd);
-//     return receivedData;
-// }
+void Server::startElection() {
+    Station::startElection();
+}

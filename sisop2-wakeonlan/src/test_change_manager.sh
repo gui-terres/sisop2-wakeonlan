@@ -11,25 +11,31 @@ gnome-terminal -- bash -c "docker-compose logs -f participant1 participant2; exe
 # Aguardar até que os contêineres dos participantes estejam prontos (por exemplo, 10 segundos)
 sleep 3
 
-# Desligar o contêiner do manager
+# Desligar o contêiner do manager2
 docker-compose stop manager2
 
-# Aguardar um tempo antes de iniciar o contêiner do manager2 (por exemplo, 10 segundos)
+# Aguardar um tempo antes de iniciar o contêiner do manager (por exemplo, 10 segundos)
 sleep 3
 
-# Iniciar o contêiner do manager2
+# Iniciar o contêiner do manager
 docker-compose up -d manager
 
-# Aguardar um tempo para garantir que o manager2 tenha tempo suficiente para iniciar (por exemplo, 10 segundos)
+# Aguardar um tempo para garantir que o manager tenha tempo suficiente para iniciar (por exemplo, 10 segundos)
 sleep 3
 
-# Desligar o contêiner do manager2
+# Desligar o contêiner do manager
 docker-compose stop manager
 
-# Aguardar um tempo antes de reiniciar o contêiner do manager (por exemplo, 10 segundos)
+# Aguardar um tempo antes de reiniciar o contêiner do manager2 (por exemplo, 10 segundos)
 sleep 3
 
-# Reiniciar o contêiner do manager
+# Reiniciar o contêiner do manager2
 docker-compose up -d manager2
 
-echo "Contêineres gerenciados com sucesso."
+# Aguardar um tempo para garantir que todos os contêineres tenham finalizado suas tarefas
+sleep 3
+
+# Parar todos os contêineres
+docker-compose down
+
+echo "Contêineres gerenciados e parados com sucesso."

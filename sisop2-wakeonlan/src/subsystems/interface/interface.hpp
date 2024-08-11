@@ -11,8 +11,6 @@
 #include <cstdlib> 
 #include <unistd.h>
 
-extern Type type;
-
 // Função para limpar a tela do terminal
 void clearScreen();
 

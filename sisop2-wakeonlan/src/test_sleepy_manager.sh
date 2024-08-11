@@ -28,3 +28,6 @@ sleep 10
 docker-compose start manager
 
 sleep 10
+
+# Parar todos os contêineres
+docker-compose down

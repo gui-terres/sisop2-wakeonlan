@@ -7,11 +7,14 @@
 #include <cstring>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <condition_variable>
+#include <atomic>
 
 #define PORT_SOCKET 55000
 #define PORT_SLEEP 55001
 #define PORT_EXIT 55002
 #define PORT_MANAGER_DATA 55003
+#define PORT_ELECTION 55004
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -30,10 +33,23 @@ enum Type {
     MANAGER
 };
 
+extern Type type;
+
 enum Request {
     SLEEP_STATUS,
     EXIT,
     PARTICIPANT_DATA
+};
+
+enum MessageType {
+    ELECTION,
+    OK,
+    COORDINATOR
+};
+
+struct Message {
+    MessageType type;
+    int id;
 };
 
 struct StationData {
@@ -64,12 +80,26 @@ struct RequestData {
 
 class Station {
 public:
+    // std::vector<std::string> stationIPs;
+
     int getHostname(char *buffer, size_t bufferSize, StationData &hostname);
     int getIpAddress(StationData &data);
     int getMacAddress(int sockfd, char *macAddress, size_t size);
     int getStatus(Status &status);
     int createSocket(int port = 0);
     void setSocketBroadcastOptions(int sockfd);
+    void sendMessage(const string& destIP, Message msg, int port);
+    Message receiveMessage(int port);
+
+    // New methods to support the election process
+    void startElection();
+    void sendCoordinatorMessage();
+
+    static std::vector<std::string> stationIPs;
+
+private:
+    int id;
+    bool isCoordinator;
 };
 
 class Server: public Station {
@@ -82,7 +112,9 @@ public:
     int sendWoLPacket(StationData &client);
     void waitForRequests();
     int sendManagerInfo();
-    // StationData* requestParticipantData(const char *ipAddress);
+    void startElection(); // Start election from the server's perspective
+
+    void updateStationIPs();
 };
 
 class Client : public Station {
@@ -97,17 +129,12 @@ public:
     int enterWakeOnLan(int argc);
     void waitForSleepRequests();
     int sendExitRequest(const char *ipAddress);
-    // void waitForParticipantDataRequests();
     int getManagerData();
+    void startElection(); // Start election from the client's perspective
 };
 
-// extern const StationData defaultManagerInfo = {
-//     hostname: PLACEHOLDER,
-//     ipAddress: PLACEHOLDER,
-//     macAddress: PLACEHOLDER,
-//     status: Status::ASLEEP
-// };
-
 extern std::mutex mtx;
+extern std::condition_variable cv;
+extern std::atomic<bool> stopThreads;
 
 #endif // STATIONS_H

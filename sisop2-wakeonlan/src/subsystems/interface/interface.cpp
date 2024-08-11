@@ -12,7 +12,7 @@
 using namespace std;
 
 std::string current_input;
-// int type;
+// Type type;
 char input[100];
 int n = 0;
 bool ctrl = 0;
@@ -52,7 +52,15 @@ void drawHeader() {
     std::cout << "                                                        /_/                                                                                   " << std::endl; 
     std::cout << std::endl;
     std::cout << std::endl;
-    }    
+
+    if (type == Type::MANAGER){
+        std::cout << " ███    ███  █████  ███    ██  █████   ██████  ███████ ██████  " << std::endl; 
+        std::cout << " ████  ████ ██   ██ ████   ██ ██   ██ ██       ██      ██   ██ " << std::endl; 
+        std::cout << " ██ ████ ██ ███████ ██ ██  ██ ███████ ██   ███ █████   ██████  " << std::endl; 
+        std::cout << " ██  ██  ██ ██   ██ ██  ██ ██ ██   ██ ██    ██ ██      ██   ██ " << std::endl; 
+        std::cout << " ██      ██ ██   ██ ██   ████ ██   ██  ██████  ███████ ██   ██ " << std::endl;     
+    }
+}    
 
 void drawInterface(){
     clearScreen(); 
@@ -133,7 +141,7 @@ void read_input(Client &client, Server &server) {
     for (int i = 0; i < 100; ++i) {
         input[i] = '\0';
     }
-    while (true) {
+    while (!stopThreads.load()) {
         if (read(STDIN_FILENO, &ch, 1) == 1) { 
             if (ch == '\b') { 
                 if (n > 0) {
@@ -164,7 +172,7 @@ void isCTRLc() {
 }
 
 void isCTRLcT(Client &client) {
-    while (true) {
+    while (!stopThreads.load()) {
         if(ctrl) {
             std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
             client.sendExitRequest(client.managerInfo.ipAddress);

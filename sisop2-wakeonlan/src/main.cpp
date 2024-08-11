@@ -5,7 +5,9 @@
 #include <vector>
 #include <iomanip>
 #include <mutex>
+#include <condition_variable>
 #include <csignal> // Para signal e SIGINT
+#include <atomic> // Para atomic
 
 #include "./stations/stations.hpp"
 #include "./subsystems/discovery/discovery.hpp"
@@ -20,227 +22,128 @@ Type type;
 
 using namespace std;
 
-// void runSendSocket(Server &server)
-// {
-//     server.sendSocket(BROADCAST_ADDR);
-// }
+// Variáveis para controle de threads
+// mutex typeMutex;
+condition_variable cv;
+atomic<bool> stopThreads(false); // Atômica para garantir visibilidade entre threads
 
-// void requestParticipantsSleepStatus(Server &server)
-// {
-//     RequestData req;
-//     req.request = Request::SLEEP_STATUS;
+// Função para atualizar o tipo do cliente para gerente
+void upgradeClientToManager(Client &client) {
+    while (true) {
+        {
+            lock_guard<mutex> lock(mtx);
+            if (type == Type::MANAGER) {
+                cout << "Cliente se tornando gerente..." << endl;
 
-//     for (DiscoveredData &client : discoveredClients) {
-//         Status status;
-//         if (server.requestSleepStatus(client.ipAddress, req, status) == 0) {
-//             client.status = status;
-//         }
-//     }
-// }
-
-// GERENCIAMENTO - sem WakeOnLan
-// void display(Server &server)
-// {
-//     while (true) {
-        
-//         requestParticipantsSleepStatus(server);
-//         std::lock_guard<std::mutex> lock(cout_mutex);
-//         drawInterface();
-//         cout << "Para sair, digite EXIT" << endl;
-//         cout << "Para acordar um computador, digite WAKE + endereço ip" << endl;
-
-//         if (!discoveredClients.empty()) {
-//             std::cout << std::endl;
-//             std::cout << " ___________________________________________________________" << std::endl;
-//             std::cout << "|              |                   |               |        |" << std::endl;
-//             std::cout << "|   Hostname   |   Endereço MAC    |  Endereço IP  | Status |" << std::endl;
-//             std::cout << "|______________|___________________|_______________|________|" << std::endl;
-         
-//             for (const auto &client : discoveredClients) {
-//                 std::cout << "|              |                   |               |        |" << std::endl;
-//                 std::cout << "| " << std::setw(12) << client.hostname
-//                         << " | " << std::setw(17) << client.macAddress
-//                         << " | " << std::setw(13) << client.ipAddress
-//                         << " | " << std::setw(6) << client.status
-//                         << " |" << std::endl;
-//                 std::cout << "|______________|___________________|_______________|________|" << std::endl;
-//             }
-//         } else {
-//           cout << endl << "Sem clientes no momento!" << endl << endl << endl;
-//         }
-//         cout << endl; 
-
-//        this_thread::sleep_for(chrono::seconds(5));
-//     }
-// }
-
-
-
-// void searchForManager(Client &client, int argc)
-// {
-//     while (!strcmp(client.managerInfo.ipAddress,"@@@@")){
-//         client.sendSocket(argc);
-//     }
-// }
-
-// void waitForRequestsClient(Client &client)
-// {
-//     client.waitForRequests();
-// }
-
-void sendExitRequest(Client &client)
-{   
-    client.sendExitRequest(client.managerInfo.ipAddress);      
+                // Sinaliza para parar as outras threads
+                stopThreads.store(true);
+                cv.notify_all();
+                
+                // Aguarda o término das threads do cliente
+                // Threads do cliente devem verificar stopThreads
+                return;
+            }
+        }
+        this_thread::sleep_for(chrono::seconds(1)); // Verifica a cada segundo
+    }
 }
 
-// void waitForParticipantDataRequests(Client &client)
-// {
-//     client.waitForParticipantDataRequests();
-// }
-
-// void waitForRequestsServer(Server &server)
-// {
-//     server.waitForRequests(server);
-// }
-
-// void requestParticipantData(Server &server)
-// {   
-//     for (const auto &client : discoveredClients) {
-//         server.requestParticipantData(client.ipAddress);
-//     }
-// }
-
-// void clear_line() {
-//     std::cout << "\33[2K\r";
-// }
-
-void read_input(Client &client, Server &server);
-
-// void manipulateInput(char input[100], Client &client, Server &server){
-//     std::string word(input);
-//     bool startsWithWake = (word.length() >= 4 && word.substr(0, 4) == "WAKE");
-//     if (word == "EXIT") {
-//         std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
-//         sendExitRequest(client);
-//         restoreTermSettings();
-//         std::exit(EXIT_SUCCESS); 
-//     } else if (startsWithWake && type == 1) {
-//         word.erase(0, 5);
-//         sendWoLPacket(server, word);
-//     } else {
-//         std::cout << "Comando inválido!" << std::endl;
-//     }
-//     read_input(client, server);
-// }
-
-// void read_input(Client &client, Server &server) {
-//     setTermNoBufferedInput(); // Configura terminal para entrada sem buffer
-//     n=0;
-//     char ch;
-//     for (int i = 0; i < 100; ++i) {
-//         input[i] = '\0';
-//     }
-//     while (true) {
-//         if (read(STDIN_FILENO, &ch, 1) == 1) { 
-//             if (ch == '\b') { 
-//                 if (n > 0) {
-//                     cout << "aaaa" << endl;
-//                     n--;
-//                     input[n] = '\0';
-//                 }
-//             } else if (ch == '\n') { 
-//                 manipulateInput(input,client, server);
-//                 break; 
-//             } else {
-//                 input[n++] = ch; 
-//                 input[n] = '\0'; 
-//             }
-//             std::cout << "\033[1F"; // Move o cursor para cima em uma linha
-//             std::cout << "\033[2K"; // Limpa a linha atual
-//             cout << string(input) << endl;
-//         }
-//     }
-// }
-
-// void handleSigInt(int signum) {
-//     ctrl = 1;
-// }
-// void isCTRLc(){
-//     signal(SIGINT, handleSigInt);
-// }
-// void isCTRLcT(Client &client){
-//     while (true)
-//     {
-//         if(ctrl){
-//             std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
-//         sendExitRequest(client);
-//         restoreTermSettings();
-//         std::exit(EXIT_SUCCESS); 
-//         }
-//     }
-    
-// }
-
+// Função principal para executar o modo de gerente
 void runManagerMode(bool isDocker = false) {
     cout << "Manager mode" << (isDocker ? " [Docker]" : "") << endl;
     Server server;
     Client client;
     type = Type::MANAGER;
 
+    stopThreads.store(false);
+
     thread t1(Discovery::discoverParticipants, ref(server));
     thread t2(&Server::sendManagerInfo, &server);
     thread t3(Management::displayServer, ref(server));
     thread t5(&Server::waitForRequests, &server);
     thread t6(read_input, ref(client), ref(server));
-
-    // thread t1(runSendSocket, ref(server));
-    // thread t2(requestParticipantsSleepStatus, ref(server));
-    // thread t3(display, ref(server));
-    // thread t5(waitForRequestsServer, ref(server));
-    // thread t6(read_input, ref(client), ref(server));
+    thread t8(isCTRLc);
 
     t1.join();
     t2.join();
     t3.join();
     t5.join();
     t6.join();
-    // t6.join();
+    t8.join();    
 }
 
+// Função principal para executar o modo de cliente
 void runClientMode(int argc, bool isDocker = false) {
     !isDocker ? drawInterface() : void();
     cout << "Client mode" << (isDocker ? " [Docker]" : "") << endl;
     Server server;
     Client client;
     type = Type::PARTICIPANT;
-
+    
     client.enterWakeOnLan(argc);
 
     thread t3(Discovery::searchForManager, ref(client), argc);
     thread t4(&Client::waitForSleepRequests, &client);
     thread t12(Management::displayClient, ref(client));
+    thread t13(Management::checkAndElectClient, ref(client));
     thread t10(Discovery::enterWakeOnLan, ref(client), argc);
     thread t7(read_input, ref(client), ref(server));
     thread t8(isCTRLc);
     thread t9(isCTRLcT, ref(client));
 
-    // thread t3(searchForManager, ref(client), argc);
-    // thread t4(waitForRequestsClient, ref(client));
-    // thread t7(read_input, ref(client), ref(server));
-    // thread t8(isCTRLc);
-    // thread t9(isCTRLcT, ref(client));
+    // Thread para verificar a atualização do tipo
+    thread upgradeThread(upgradeClientToManager, ref(client));
+
+    while (!stopThreads.load()) {
+        this_thread::sleep_for(chrono::seconds(1)); // Ajuste o intervalo conforme necessário
+    }
+
+    // Espera todas as threads terminarem antes de iniciar o modo de gerente
+    if (type == Type::MANAGER) {
+        cout << "Transição para o modo de gerente..." << endl;
+        t3.join();
+        cout << "oiiii" << endl;
+        t4.join();
+        cout << "oiiii" << endl;
+        t7.join();
+        cout << "oiiii" << endl;
+        t8.join();
+        cout << "oiiii" << endl;
+        t9.join();
+        cout << "oiiii" << endl;
+        t10.join();
+        cout << "oiiii" << endl;
+        t12.join();
+        cout << "oiiii" << endl;
+        t13.join();
+        cout << "oiiii" << endl;
+        // Inicia o modo de gerente
+        runManagerMode(isDocker);
+    }
 
     t3.join();
+    cout << "oiiii" << endl;
     t4.join();
+    cout << "oiiii" << endl;
     t7.join();
+    cout << "oiiii" << endl;
     t8.join();
+    cout << "oiiii" << endl;
     t9.join();
+    cout << "oiiii" << endl;
     t10.join();
+    cout << "oiiii" << endl;
     t12.join();
+    cout << "oiiii" << endl;
+    t13.join();
+    cout << "oiiii" << endl;    
+
+    // Espera a thread de upgrade terminar
+    upgradeThread.join();
 }
 
-int main(int argc, char **argv)
-{
+// Função principal do programa
+int main(int argc, char **argv) {
     if (argc > 3) {
         cout << "Invalid initialization!" << endl;
         return 1;
@@ -258,7 +161,7 @@ int main(int argc, char **argv)
             cout << "ERROR: Invalid argument initialization!" << endl;
             cout << argv[1] << " isn't a valid mode." << endl;
             return 1;
-        }else{
+        } else {
             runClientMode(argc, isDocker);
             return 0;           
         }
