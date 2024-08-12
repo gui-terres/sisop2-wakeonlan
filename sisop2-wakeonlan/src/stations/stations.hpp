@@ -12,6 +12,7 @@
 #define PORT_SLEEP 55001
 #define PORT_EXIT 55002
 #define PORT_MANAGER_DATA 55003
+#define PORT_TABLE 55004
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -82,6 +83,7 @@ public:
     int sendWoLPacket(StationData &client);
     void waitForRequests();
     int sendManagerInfo();
+    void receiveMessages();
     // StationData* requestParticipantData(const char *ipAddress);
 };
 
@@ -99,6 +101,7 @@ public:
     int sendExitRequest(const char *ipAddress);
     // void waitForParticipantDataRequests();
     int getManagerData();
+    void sendMessage(const std::string &message, const std::string &ipAddress);
 };
 
 // extern const StationData defaultManagerInfo = {

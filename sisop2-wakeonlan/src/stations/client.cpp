@@ -150,3 +150,37 @@ int Client::sendExitRequest(const char *ipAddress) {
     close(sockfd);
     return 0;
 }
+
+void Client::sendMessage(const std::string &message, const std::string &ipAddress) {
+    int sockfd;
+    struct sockaddr_in serv_addr;
+
+    // Criando o socket UDP
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        cerr << "ERROR creating socket" << endl;
+        return;
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT_TABLE); // Use a porta apropriada para comunicação com o gerenciador
+
+    // Convertendo endereço IP para formato binário
+    if (inet_pton(AF_INET, ipAddress.c_str(), &serv_addr.sin_addr) <= 0) {
+        cerr << "ERROR: Invalid address / Address not supported" << endl;
+        close(sockfd);
+        return;
+    }
+
+    // Enviando a mensagem "oi"
+    if (sendto(sockfd, message.c_str(), message.size(), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        cerr << "ERROR sending message" << endl;
+        close(sockfd);
+        return;
+    }
+
+    //cout << "Message sent: " << message << endl;
+    cout << "Eu quero a lista de participantes!!!" << endl;
+
+    // Fechando o socket
+    close(sockfd);
+}
