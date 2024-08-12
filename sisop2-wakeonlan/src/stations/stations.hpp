@@ -16,6 +16,7 @@
 #define PORT_MANAGER_DATA 55003
 #define PORT_ELECTION 55004
 #define PORT_COORDINATOR 55005
+#define PORT_TABLE 55006
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -118,6 +119,9 @@ public:
     void startElection(); // Start election from the server's perspective
 
     void updateStationIPs();
+    //void receiveMessages();
+    // StationData* requestParticipantData(const char *ipAddress);
+    void sendTable();
 };
 
 class Client : public Station {
@@ -134,6 +138,8 @@ public:
     int sendExitRequest(const char *ipAddress);
     int getManagerData();
     void startElection(); // Start election from the client's perspective
+    //void sendMessage(const std::string &message, const std::string &ipAddress);
+    void askForTable();
 };
 
 extern std::mutex mtx;

@@ -17,6 +17,7 @@
 #include "stations.hpp"
 
 #define BUFFER_SIZE 256
+#define BUFFER_SIZE2 1024
 
 using namespace std;
 
@@ -72,18 +73,6 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
             
             updateStationIPs();
         }
-
-        // char buffer[BUFFER_SIZE];
-        // StationData managerInfo;
-        // memset(&managerInfo, 0, sizeof(managerInfo));
-
-        // getHostname(buffer, BUFFER_SIZE, managerInfo);
-        // getIpAddress(managerInfo);
-        // getMacAddress(sockfd, managerInfo.macAddress, MAC_ADDRESS_SIZE);
-
-        // if (sendto(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
-        //     cerr << "ERROR on sendto." << endl;
-        // }
     }
 
     close(sockfd);
@@ -270,4 +259,52 @@ void Server::waitForRequests() {
 
 void Server::startElection() {
     Station::startElection();
+}
+
+void Server::sendTable() {
+    int sockfd;
+    struct sockaddr_in servaddr, cliaddr;
+
+    // Criar socket UDP
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Erro ao criar socket");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&cliaddr, 0, sizeof(cliaddr));
+
+    // Configurar informações do servidor
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT_TABLE);
+
+    // Vincular o socket
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        perror("Erro ao bind o socket");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    socklen_t len;
+    char buffer[BUFFER_SIZE2];
+
+    while (true) {
+        len = sizeof(cliaddr);
+
+        // Receber solicitação do client
+        int n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE2, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
+        buffer[n] = '\0';
+
+        std::cout << "Pediu tabela" << std::endl;
+
+        // Pegar o vetor de discoveredClients
+        std::vector<StationData>& clients = this->getDiscoveredClients();
+        // Enviar o vetor de StationData de volta ao client
+        sendto(sockfd, clients.data(), clients.size() * sizeof(StationData), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+
+        std::cout << "Tabela enviada" << std::endl;
+    }
+
+    close(sockfd);
 }

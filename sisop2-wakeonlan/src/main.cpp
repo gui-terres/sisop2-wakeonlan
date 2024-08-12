@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <csignal> // Para signal e SIGINT
 #include <atomic> // Para atomic
+#include <chrono>  // Para std::this_thread::sleep_for
 
 #include "./stations/stations.hpp"
 #include "./subsystems/discovery/discovery.hpp"
@@ -63,6 +64,8 @@ void runManagerMode(bool isDocker = false) {
     thread t5(&Server::waitForRequests, &server);
     thread t6(read_input, ref(client), ref(server));
     thread t8(isCTRLc);
+    //thread t7(&Server::receiveMessages, &server);
+    thread t7(&Server::sendTable, &server);
 
     t1.join();
     t2.join();
@@ -70,6 +73,7 @@ void runManagerMode(bool isDocker = false) {
     t5.join();
     t6.join();
     t8.join();    
+    t7.join();
 }
 
 // Função principal para executar o modo de cliente
@@ -93,6 +97,8 @@ void runClientMode(int argc, bool isDocker = false) {
 
     // Thread para escutar a porta COORDINATOR e iniciar eleição em caso de timeout
     thread t9(&Station::listenForCoordinator, &client);
+    //thread t13(sendPeriodicMessage, ref(client));
+    thread t13(&Client::askForTable, ref(client));
 
     // Thread para verificar a atualização do tipo
     thread t10(upgradeClientToManager, ref(client));
@@ -113,6 +119,8 @@ void runClientMode(int argc, bool isDocker = false) {
         t7.join();
         t8.join();
         t9.join();
+        t10.join();         
+        t13.join();
         // Inicia o modo de gerente
         runManagerMode(isDocker);
     }
@@ -127,6 +135,7 @@ void runClientMode(int argc, bool isDocker = false) {
     t8.join();    
     t9.join();
     t10.join();  // Espera as novas threads terminarem
+    t13.join();
 }
 
 
