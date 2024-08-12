@@ -25,13 +25,12 @@ void sendExitRequest(Client &client)
 {   
     client.sendExitRequest(client.managerInfo.ipAddress);      
 }
-void sendPeriodicMessage(Client &client) {
+/*void sendPeriodicMessage(Client &client) {
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(4));
-        client.sendMessage("oiii", client.managerInfo.ipAddress);
-        
+        client.sendMessage("table", client.managerInfo.ipAddress);   
     }
-}
+}*/
 void read_input(Client &client, Server &server);
 
 void runManagerMode(bool isDocker = false) {
@@ -45,7 +44,8 @@ void runManagerMode(bool isDocker = false) {
     thread t3(Management::displayServer, ref(server));
     thread t5(&Server::waitForRequests, &server);
     thread t6(read_input, ref(client), ref(server));
-    thread t7(&Server::receiveMessages, &server);
+    //thread t7(&Server::receiveMessages, &server);
+    thread t7(&Server::sendTable, &server);
 
     t1.join();
     t2.join();
@@ -72,7 +72,8 @@ void runClientMode(int argc, bool isDocker = false) {
     thread t8(isCTRLc);
     thread t9(isCTRLcT, ref(client));
 
-    thread t13(sendPeriodicMessage, ref(client));
+    //thread t13(sendPeriodicMessage, ref(client));
+    thread t13(&Client::askForTable, ref(client));
 
     t3.join();
     t4.join();

@@ -138,35 +138,3 @@ void Station::setSocketBroadcastOptions(int sockfd) {
     }
 }
 
-// void Station::waitForParticipantDataRequests() {
-//     int sockfd = createSocket(PORT_DATA);
-//     if (sockfd == -1) return;
-
-//     while (true) {
-//         RequestData request;
-//         struct sockaddr_in from;
-//         socklen_t fromlen = sizeof(from);
-//         ssize_t bytesReceived = receiveData(sockfd, &request, sizeof(request), &from, &fromlen);
-//         if (bytesReceived < 0) {
-//             cerr << "ERROR on recvfrom." << endl;
-//             continue;
-//         }
-
-//         if (request.request == Request::PARTICIPANT_DATA) {
-//             char buffer[BUFFER_SIZE];
-
-//             StationData pcData;
-//             getHostname(buffer, BUFFER_SIZE, pcData);
-//             getIpAddress(pcData);
-//             getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-//             pcData.status = Status::AWAKEN;
-
-//             sendData(sockfd, &pcData, sizeof(pcData), inet_ntoa(from.sin_addr), PORT_DATA);
-//         }
-//     }
-
-//     close(sockfd);
-// }
-
-
-

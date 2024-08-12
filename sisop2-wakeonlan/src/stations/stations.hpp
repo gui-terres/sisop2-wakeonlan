@@ -83,8 +83,9 @@ public:
     int sendWoLPacket(StationData &client);
     void waitForRequests();
     int sendManagerInfo();
-    void receiveMessages();
+    //void receiveMessages();
     // StationData* requestParticipantData(const char *ipAddress);
+    void sendTable();
 };
 
 class Client : public Station {
@@ -101,7 +102,8 @@ public:
     int sendExitRequest(const char *ipAddress);
     // void waitForParticipantDataRequests();
     int getManagerData();
-    void sendMessage(const std::string &message, const std::string &ipAddress);
+    //void sendMessage(const std::string &message, const std::string &ipAddress);
+    void askForTable();
 };
 
 // extern const StationData defaultManagerInfo = {

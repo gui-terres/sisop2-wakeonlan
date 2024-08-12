@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <thread>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -12,10 +13,12 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <fstream>
+#include <chrono>  // Para std::this_thread::sleep_for
 
 #include "./stations.hpp"
 
 #define BUFFER_SIZE 256
+#define BUFFER_SIZE2 1024
 
 using namespace std;
 
@@ -150,7 +153,7 @@ int Client::sendExitRequest(const char *ipAddress) {
     close(sockfd);
     return 0;
 }
-
+/*
 void Client::sendMessage(const std::string &message, const std::string &ipAddress) {
     int sockfd;
     struct sockaddr_in serv_addr;
@@ -182,5 +185,50 @@ void Client::sendMessage(const std::string &message, const std::string &ipAddres
     cout << "Eu quero a lista de participantes!!!" << endl;
 
     // Fechando o socket
+    close(sockfd);
+}
+*/
+
+void Client::askForTable() {
+    int sockfd;
+    struct sockaddr_in servaddr;
+
+    // Criar socket UDP
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Erro ao criar socket");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&servaddr, 0, sizeof(servaddr));
+
+    // Configurar informações do servidor
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(PORT_TABLE);
+    //servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_addr.s_addr = inet_addr("172.18.0.15"); // IP do manager
+    socklen_t len = sizeof(servaddr);
+
+    while (true) {
+         std::this_thread::sleep_for(std::chrono::seconds(4));
+        // Enviar solicitação ao manager
+        const char *message = "Solicitar tabela";
+        sendto(sockfd, message, strlen(message), MSG_CONFIRM, (const struct sockaddr *)&servaddr, len);
+
+        std::cout << "Solicitação enviada" << std::endl;
+
+        // Receber a resposta do manager
+        std::vector<StationData> receivedData(10);  // Supondo um tamanho inicial
+        int n = recvfrom(sockfd, receivedData.data(), receivedData.size() * sizeof(StationData), MSG_WAITALL, (struct sockaddr *)&servaddr, &len);
+
+        // Ajustar o tamanho do vetor conforme o número de elementos recebidos
+        receivedData.resize(n / sizeof(StationData));
+
+        // Processar a resposta recebida
+        std::cout << "Informações recebidas do manager: " << std::endl;
+        for (const auto& data : receivedData) {
+            std::cout << "Hostname: " << data.hostname << ", IP: " << data.ipAddress << ", MAC: " << data.macAddress << ", Status: " << static_cast<int>(data.status) << std::endl;
+        }
+    }
+
     close(sockfd);
 }
