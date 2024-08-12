@@ -40,15 +40,15 @@ void Management::displayClient(Client &client) {
 }
 
 void Management::checkAndElectClient(Client &client) {
-    while (!stopThreads.load()) {
-        // Check if there is no leader in the network
-        if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER) || !strcmp(client.managerInfo.ipAddress, "")) {
-            cout << "Nenhum líder na rede. Iniciando eleição..." << endl;
-            // cout << type << endl;
-            client.startElection();
+    // while (!stopThreads.load()) {
+    //     // Check if there is no leader in the network
+    //     if (!strcmp(client.managerInfo.ipAddress, PLACEHOLDER) || !strcmp(client.managerInfo.ipAddress, "")) {
+    //         cout << "Nenhum líder na rede. Iniciando eleição..." << endl;
+    //         // cout << type << endl;
+    //         // client.startElection();
 
-        } 
-        cout << endl;
-        this_thread::sleep_for(chrono::seconds(1));
-    }
+    //     } 
+    //     cout << endl;
+    //     this_thread::sleep_for(chrono::seconds(1));
+    // }
 }

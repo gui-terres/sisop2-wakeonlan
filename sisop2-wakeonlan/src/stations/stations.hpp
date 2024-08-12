@@ -15,6 +15,7 @@
 #define PORT_EXIT 55002
 #define PORT_MANAGER_DATA 55003
 #define PORT_ELECTION 55004
+#define PORT_COORDINATOR 55005
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -56,6 +57,7 @@ struct StationData {
     char hostname[MAX_HOSTNAME_SIZE];
     char ipAddress[IP_ADDRESS_SIZE];
     char macAddress[MAC_ADDRESS_SIZE];
+    int id;
     Type type;
     Status status;
 
@@ -94,10 +96,11 @@ public:
     // New methods to support the election process
     void startElection();
     void sendCoordinatorMessage();
+    void listenForCoordinator();
 
     static std::vector<std::string> stationIPs;
 
-private:
+protected:
     int id;
     bool isCoordinator;
 };

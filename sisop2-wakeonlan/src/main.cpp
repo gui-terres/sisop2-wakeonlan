@@ -82,17 +82,20 @@ void runClientMode(int argc, bool isDocker = false) {
     
     client.enterWakeOnLan(argc);
 
-    thread t3(Discovery::searchForManager, ref(client), argc);
-    thread t4(&Client::waitForSleepRequests, &client);
-    thread t12(Management::displayClient, ref(client));
-    thread t13(Management::checkAndElectClient, ref(client));
-    thread t10(Discovery::enterWakeOnLan, ref(client), argc);
-    thread t7(read_input, ref(client), ref(server));
-    thread t8(isCTRLc);
-    thread t9(isCTRLcT, ref(client));
+    thread t1(Discovery::searchForManager, ref(client), argc);
+    thread t2(&Client::waitForSleepRequests, &client);
+    thread t3(Management::displayClient, ref(client));
+    thread t4(Management::checkAndElectClient, ref(client));
+    thread t5(Discovery::enterWakeOnLan, ref(client), argc);
+    thread t6(read_input, ref(client), ref(server));
+    thread t7(isCTRLc);
+    thread t8(isCTRLcT, ref(client));
+
+    // Thread para escutar a porta COORDINATOR e iniciar eleição em caso de timeout
+    thread t9(&Station::listenForCoordinator, &client);
 
     // Thread para verificar a atualização do tipo
-    thread upgradeThread(upgradeClientToManager, ref(client));
+    thread t10(upgradeClientToManager, ref(client));
 
     while (!stopThreads.load()) {
         this_thread::sleep_for(chrono::seconds(1)); // Ajuste o intervalo conforme necessário
@@ -101,46 +104,31 @@ void runClientMode(int argc, bool isDocker = false) {
     // Espera todas as threads terminarem antes de iniciar o modo de gerente
     if (type == Type::MANAGER) {
         cout << "Transição para o modo de gerente..." << endl;
+        t1.join();
+        t2.join();
         t3.join();
-        cout << "oiiii" << endl;
         t4.join();
-        cout << "oiiii" << endl;
+        t5.join();
+        t6.join();
         t7.join();
-        cout << "oiiii" << endl;
         t8.join();
-        cout << "oiiii" << endl;
         t9.join();
-        cout << "oiiii" << endl;
-        t10.join();
-        cout << "oiiii" << endl;
-        t12.join();
-        cout << "oiiii" << endl;
-        t13.join();
-        cout << "oiiii" << endl;
         // Inicia o modo de gerente
         runManagerMode(isDocker);
     }
 
+    t1.join();
+    t2.join();
     t3.join();
-    cout << "oiiii" << endl;
     t4.join();
-    cout << "oiiii" << endl;
+    t5.join();
+    t6.join();
     t7.join();
-    cout << "oiiii" << endl;
-    t8.join();
-    cout << "oiiii" << endl;
+    t8.join();    
     t9.join();
-    cout << "oiiii" << endl;
-    t10.join();
-    cout << "oiiii" << endl;
-    t12.join();
-    cout << "oiiii" << endl;
-    t13.join();
-    cout << "oiiii" << endl;    
-
-    // Espera a thread de upgrade terminar
-    upgradeThread.join();
+    t10.join();  // Espera as novas threads terminarem
 }
+
 
 // Função principal do programa
 int main(int argc, char **argv) {

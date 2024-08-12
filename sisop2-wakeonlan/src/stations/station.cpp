@@ -12,6 +12,9 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <fstream>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "./stations.hpp"
 
@@ -19,11 +22,12 @@
 
 // Define the static IP array for testing
 std::vector<std::string> Station::stationIPs 
-// = {
-//     "172.18.0.15",
-//     "172.18.0.12",
-//     "172.18.0.7"
-// }
+= {
+    "172.18.0.7",
+    "172.18.0.12",
+    "172.18.0.13",
+    "172.18.0.14"
+}
 ;
 
 using namespace std;
@@ -183,33 +187,62 @@ Message Station::receiveMessage(int port) {
 }
 
 void Station::startElection() {
-    id = getpid();  // Get the process ID
     cout << "Station " << id << " is starting an election." << endl;
 
     bool higherExists = false;
-    for (const string& ip : stationIPs) {
-        cout << ip << "oiiii" << endl;
-        // Create a message with the type and PID
-        Message electionMsg = {ELECTION, id};
-        
-        // Send the message to the current IP address
-        sendMessage(ip, electionMsg, PORT_ELECTION);
-        
-        // Mark that a higher ID exists
-        higherExists = true;
+    
+    // Itera sobre a lista de StationData
+    for (const StationData& station : stationDataList) { 
+        if (station.id > id) {  // Verifica se o id é maior
+            // Cria uma mensagem com o tipo e PID
+            Message electionMsg = {ELECTION, id};
+            
+            // Envia a mensagem para o endereço IP atual
+            sendMessage(station.ipAddress, electionMsg, PORT_ELECTION);
+        }
     }
 
-
     if (!higherExists) {
-        // cout << "here" << endl;
         type = Type::MANAGER;
         sendCoordinatorMessage();
+    }
+}
+
+
+void Station::listenForCoordinator() {
+    while (!stopThreads.load()) {
+        int sockfd = createSocket(PORT_COORDINATOR);
+        setSocketTimeout(sockfd, 1);
+
+        struct sockaddr_in senderAddr;
+        socklen_t addrLen = sizeof(senderAddr);
+        Message msg;
+
+        int recvStatus = recvfrom(sockfd, &msg, sizeof(msg), 0, (struct sockaddr*)&senderAddr, &addrLen);
+
+        if (recvStatus < 0) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                std::cout << "Coordinator message timeout. Starting election." << std::endl;
+                close(sockfd);
+                startElection();
+                break;
+            } else {
+                std::cerr << "ERROR on receiving coordinator message: " << strerror(errno) << std::endl;
+            }
+        } else if (msg.type == COORDINATOR) {
+            std::cout << "Coordinator message received from station " << msg.id << std::endl;
+        }
+
+        close(sockfd);
+
+        // Sleep for a short period before listening again (optional)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
 void Station::sendCoordinatorMessage() {
     Message coordMsg = {COORDINATOR, id};
     for (const string& ip : stationIPs) {
-        sendMessage(ip, coordMsg, PORT_ELECTION);
+        sendMessage(ip, coordMsg, PORT_COORDINATOR);
     }
 }

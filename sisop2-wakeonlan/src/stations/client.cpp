@@ -38,6 +38,8 @@ int Client::enterWakeOnLan(int argc) {
     getIpAddress(pcData);
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
     pcData.status = Status::AWAKEN;
+    pcData.id = sockfd;
+    id = sockfd;
 
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
         cerr << "ERROR on sendto." << endl;
