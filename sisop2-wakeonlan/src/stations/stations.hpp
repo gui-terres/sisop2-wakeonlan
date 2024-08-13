@@ -100,6 +100,7 @@ public:
     void startElection();
     void sendCoordinatorMessage();
     void listenForCoordinator();
+    void setSocketTimeout(int sockfd, int timeoutSec);
 
     // static std::vector<std::string> stationIPs;
 };

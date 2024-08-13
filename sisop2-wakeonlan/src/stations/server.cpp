@@ -120,7 +120,7 @@ int Server::requestSleepStatus(const char *ipAddress, RequestData request, Statu
     ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
     if (bytesReceived < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            cerr << "ERROR: Timeout receiving response." << endl;
+            cerr << "ERROR: Timeout receiving response in requestSleepStatus." << endl;
         } else {
             cerr << "ERROR receiving response." << endl;
         }
@@ -229,18 +229,28 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client) {
 
 void Server::waitForRequests() {
     int sockfd = createSocket(PORT_EXIT);
+    Station::setSocketTimeout(sockfd,10);
 
     while (!stopThreads.load()) {
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
+        cout << "entrei aqui" << endl;
+        
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
-        if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom waitForRequests." << endl;
+
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            cerr << "ERROR: Timeout receiving Wresponse." << endl;
+            continue;
+        } else if (bytesReceived < 0) {
+            cerr << "ERROR receiving response." << endl;
             continue;
         }
 
+        cout << "thcaaaaaaaaaau" << endl;
+
         if (request.request == Request::EXIT) {
+            cout << "oiiiiiiii" << endl;
             char ipAddress[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &from.sin_addr, ipAddress, sizeof(ipAddress)) == nullptr) {
                 cerr << "ERROR converting address." << endl;
@@ -300,14 +310,14 @@ void Server::sendTable() {
         int n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE2, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
         buffer[n] = '\0';
 
-        std::cout << "Pediu tabela" << std::endl;
+        // std::cout << "Pediu tabela" << std::endl;
 
         // Pegar o vetor de discoveredClients
         std::vector<StationData>& clients = this->getDiscoveredClients();
         // Enviar o vetor de StationData de volta ao client
         sendto(sockfd, clients.data(), clients.size() * sizeof(StationData), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
 
-        std::cout << "Tabela enviada" << std::endl;
+        // std::cout << "Tabela enviada" << std::endl;
     }
 
     close(sockfd);

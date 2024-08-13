@@ -111,7 +111,7 @@ int Station::getStatus(Status &status)
 }
 
 
-void setSocketTimeout(int sockfd, int timeoutSec) {
+void Station::setSocketTimeout(int sockfd, int timeoutSec) {
     struct timeval timeout;
     timeout.tv_sec = timeoutSec;
     timeout.tv_usec = 0;
@@ -203,7 +203,7 @@ void Station::startElection() {
 
 void Station::listenForCoordinator() {
     int sockfd = createSocket(PORT_COORDINATOR);
-    setSocketTimeout(sockfd, 5);
+    setSocketTimeout(sockfd, 15);
 
     while (!stopThreads.load()) {
 
