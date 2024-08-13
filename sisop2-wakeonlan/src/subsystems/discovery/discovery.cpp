@@ -5,7 +5,7 @@
 using namespace std;
 
 void Discovery::discoverParticipants(Server &manager) {
-    cout << "oiii" << endl;
+    cout << "discoverParticipants" << endl;
     manager.collectParticipants(BROADCAST_ADDR);
 }
 

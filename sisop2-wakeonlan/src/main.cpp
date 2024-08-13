@@ -20,6 +20,7 @@
 Monitoring monitoring;
 Management management;
 Type type;
+int id;
 
 using namespace std;
 
@@ -39,7 +40,7 @@ void upgradeClientToManager(Client &client) {
                 // Sinaliza para parar as outras threads
                 stopThreads.store(true);
                 cv.notify_all();
-                
+                cout << "oiii" << endl;
                 // Aguarda o término das threads do cliente
                 // Threads do cliente devem verificar stopThreads
                 return;
@@ -58,6 +59,7 @@ void runManagerMode(bool isDocker = false) {
 
     stopThreads.store(false);
 
+
     thread t1(Discovery::discoverParticipants, ref(server));
     thread t2(&Server::sendManagerInfo, &server);
     thread t3(Management::displayServer, ref(server));
@@ -66,6 +68,7 @@ void runManagerMode(bool isDocker = false) {
     thread t8(isCTRLc);
     //thread t7(&Server::receiveMessages, &server);
     thread t7(&Server::sendTable, &server);
+    thread t9(&Server::sendCoordinatorMessage, &server);
 
     t1.join();
     t2.join();
@@ -83,9 +86,8 @@ void runClientMode(int argc, bool isDocker = false) {
     Server server;
     Client client;
     type = Type::PARTICIPANT;
+    id = getpid();
     
-    client.enterWakeOnLan(argc);
-
     thread t1(Discovery::searchForManager, ref(client), argc);
     thread t2(&Client::waitForSleepRequests, &client);
     thread t3(Management::displayClient, ref(client));
@@ -106,7 +108,7 @@ void runClientMode(int argc, bool isDocker = false) {
     while (!stopThreads.load()) {
         this_thread::sleep_for(chrono::seconds(1)); // Ajuste o intervalo conforme necessário
     }
-
+    cout << "oiii" << endl;
     // Espera todas as threads terminarem antes de iniciar o modo de gerente
     if (type == Type::MANAGER) {
         cout << "Transição para o modo de gerente..." << endl;
@@ -119,8 +121,8 @@ void runClientMode(int argc, bool isDocker = false) {
         t7.join();
         t8.join();
         t9.join();
-        t10.join();         
         t13.join();
+        t10.join();         
         // Inicia o modo de gerente
         runManagerMode(isDocker);
     }
@@ -134,8 +136,8 @@ void runClientMode(int argc, bool isDocker = false) {
     t7.join();
     t8.join();    
     t9.join();
-    t10.join();  // Espera as novas threads terminarem
     t13.join();
+    t10.join();  // Espera as novas threads terminarem
 }
 
 

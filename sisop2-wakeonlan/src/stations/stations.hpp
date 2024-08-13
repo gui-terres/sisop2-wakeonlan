@@ -36,6 +36,7 @@ enum Type {
 };
 
 extern Type type;
+extern int id;
 
 enum Request {
     SLEEP_STATUS,
@@ -84,6 +85,7 @@ struct RequestData {
 class Station {
 public:
     // std::vector<std::string> stationIPs;
+    std::vector<StationData> discoveredClients;
 
     int getHostname(char *buffer, size_t bufferSize, StationData &hostname);
     int getIpAddress(StationData &data);
@@ -91,7 +93,7 @@ public:
     int getStatus(Status &status);
     int createSocket(int port = 0);
     void setSocketBroadcastOptions(int sockfd);
-    void sendMessage(const string& destIP, Message msg, int port);
+    void sendMessage(const char* destIP, Message msg, int port) ;
     Message receiveMessage(int port);
 
     // New methods to support the election process
@@ -99,17 +101,11 @@ public:
     void sendCoordinatorMessage();
     void listenForCoordinator();
 
-    static std::vector<std::string> stationIPs;
-
-protected:
-    int id;
-    bool isCoordinator;
+    // static std::vector<std::string> stationIPs;
 };
 
 class Server: public Station {
 public:
-    std::vector<StationData> discoveredClients;
-
     int collectParticipants(const char* addr);
     int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
     std::vector<StationData>& getDiscoveredClients();

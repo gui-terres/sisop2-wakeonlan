@@ -20,16 +20,6 @@
 
 #define BUFFER_SIZE 256
 
-// Define the static IP array for testing
-std::vector<std::string> Station::stationIPs 
-= {
-    "172.18.0.7",
-    "172.18.0.12",
-    "172.18.0.13",
-    "172.18.0.14"
-}
-;
-
 using namespace std;
 
 int Station::getHostname(char *buffer, size_t bufferSize, StationData &data)
@@ -162,14 +152,16 @@ void Station::setSocketBroadcastOptions(int sockfd) {
     }
 }
 
-void Station::sendMessage(const string& destIP, Message msg, int port) {
+void Station::sendMessage(const char* destIP, Message msg, int port) {
     int sockfd = createSocket(0);
-
+    // cout << "MANDANDO MENSNFSAJ,DHFSAJGHKSAGSD" << destIP << endl;
     struct sockaddr_in destAddr;
     destAddr.sin_family = AF_INET;
     destAddr.sin_port = htons(port);
-    inet_pton(AF_INET, destIP.c_str(), &destAddr.sin_addr);
+    destAddr.sin_addr.s_addr = inet_addr(destIP);
+    // inet_pton(AF_INET, destIP.c_str(), &destAddr.sin_addr);
 
+    // cout << "MANDANDO MENSNFSAJ,DHFSAJGHKSAGSD" << destIP << endl;
     sendto(sockfd, &msg, sizeof(msg), 0, (struct sockaddr*)&destAddr, sizeof(destAddr));
     close(sockfd);
 }
@@ -192,7 +184,7 @@ void Station::startElection() {
     bool higherExists = false;
     
     // Itera sobre a lista de StationData
-    for (const StationData& station : stationDataList) { 
+    for (const StationData& station : discoveredClients) { 
         if (station.id > id) {  // Verifica se o id é maior
             // Cria uma mensagem com o tipo e PID
             Message electionMsg = {ELECTION, id};
@@ -210,9 +202,10 @@ void Station::startElection() {
 
 
 void Station::listenForCoordinator() {
+    int sockfd = createSocket(PORT_COORDINATOR);
+    setSocketTimeout(sockfd, 5);
+
     while (!stopThreads.load()) {
-        int sockfd = createSocket(PORT_COORDINATOR);
-        setSocketTimeout(sockfd, 1);
 
         struct sockaddr_in senderAddr;
         socklen_t addrLen = sizeof(senderAddr);
@@ -223,7 +216,6 @@ void Station::listenForCoordinator() {
         if (recvStatus < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 std::cout << "Coordinator message timeout. Starting election." << std::endl;
-                close(sockfd);
                 startElection();
                 break;
             } else {
@@ -233,16 +225,21 @@ void Station::listenForCoordinator() {
             std::cout << "Coordinator message received from station " << msg.id << std::endl;
         }
 
-        close(sockfd);
-
         // Sleep for a short period before listening again (optional)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
+    // Close the socket only after exiting the loop
+    close(sockfd);
 }
 
+
 void Station::sendCoordinatorMessage() {
-    Message coordMsg = {COORDINATOR, id};
-    for (const string& ip : stationIPs) {
-        sendMessage(ip, coordMsg, PORT_COORDINATOR);
+    while (!stopThreads.load()) {
+        Message coordMsg = {COORDINATOR, id};
+        for (const StationData& station : discoveredClients) { 
+            sendMessage(station.ipAddress, coordMsg, PORT_COORDINATOR);
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }

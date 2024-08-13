@@ -24,14 +24,14 @@ using namespace std;
 // Mutex para sincronização de acesso à lista
 std::mutex mtx;
 
-void Server::updateStationIPs() {
-    std::lock_guard<std::mutex> lock(mtx);
-    stationIPs.clear();  // Clear the previous list
+// void Server::updateStationIPs() {
+//     std::lock_guard<std::mutex> lock(mtx);
+//     stationIPs.clear();  // Clear the previous list
 
-    for (const auto& client : discoveredClients) {
-        stationIPs.push_back(std::string(client.ipAddress));
-    }
-}
+//     for (const auto& client : discoveredClients) {
+//         stationIPs.push_back(std::string(client.ipAddress));
+//     }
+// }
 
 int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     int sockfd = createSocket(PORT_SOCKET);
@@ -40,15 +40,21 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
 
-    while (!stopThreads.load()) {
+    while (true) {
         StationData receivedData;
         memset(&receivedData, 0, sizeof(receivedData));
 
         
         ssize_t bytesReceived = recvfrom(sockfd, &receivedData, sizeof(receivedData), 0, (struct sockaddr *)&cli_addr, &clilen);
         if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom in collectParticipants." << endl;
-            break;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // Timeout or non-blocking mode, just continue
+                continue;
+            } else {
+                // Other errors, print error and break the loop
+                cerr << "ERROR on recvfrom in collectParticipants." << endl;
+                break;
+            }
         }
 
         {
@@ -70,8 +76,6 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
             } else {
                 // std::cout << "Item já existe na lista." << std::endl;
             }
-            
-            updateStationIPs();
         }
     }
 
@@ -289,7 +293,7 @@ void Server::sendTable() {
     socklen_t len;
     char buffer[BUFFER_SIZE2];
 
-    while (true) {
+    while (!stopThreads.load()) {
         len = sizeof(cliaddr);
 
         // Receber solicitação do client
