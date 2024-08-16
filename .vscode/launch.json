@@ -7,9 +7,9 @@
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
-      "externalConsole": true,
-      "cwd": "c:/Users/julia/OneDrive/Documentos/AAUFRGS/6SEM/sisop2-wakeonlan/sisop2-wakeonlan/src",
-      "program": "c:/Users/julia/OneDrive/Documentos/AAUFRGS/6SEM/sisop2-wakeonlan/sisop2-wakeonlan/src/build/Debug/outDebug",
+      "externalConsole": false,
+      "cwd": "/home/aluno/Documents/sisop2-wake/sisop2-wakeonlan/sisop2-wakeonlan/src/stations",
+      "program": "/home/aluno/Documents/sisop2-wake/sisop2-wakeonlan/sisop2-wakeonlan/src/stations/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

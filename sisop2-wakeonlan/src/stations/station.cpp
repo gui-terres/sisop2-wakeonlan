@@ -209,7 +209,7 @@ void Station::startElection() {
     bool receivedOk = false;
     int sockfd = createSocket(PORT_ELECTION);  // Abra o socket uma vez
     setSocketTimeout(sockfd, 1);
-    // bool a = false;
+    bool a = false;
     for (StationData& client : discoveredClients) {
         int clientId = getLastFieldOfIP(client.ipAddress);
         cout << client.hostname << endl;
@@ -221,7 +221,7 @@ void Station::startElection() {
             Message electionMessage = {MessageType::ELECTION, id};
             // Enviar mensagem de eleição ao cliente
             sendMessage(sockfd, client, electionMessage);
-            // a = true;
+            a = true;
         }
     }
 
@@ -229,7 +229,7 @@ void Station::startElection() {
     // Aguardar resposta do cliente
     receivedOk = waitForOkMessage();
     // Se não recebeu nenhuma mensagem de OK
-    if (!receivedOk) {
+    if (!receivedOk && !a) {
         // Autoproclama-se líder
         type = Type::MANAGER;
         cout << "Eu sou o novo coordenador (ID: " << id << ")" << endl;
@@ -251,7 +251,7 @@ void Station::sendMessage(int sockfd, const StationData& client, const Message& 
 
 bool Station::waitForOkMessage() {
     int sockfd = createSocket(PORT_ELECTION_RESPONSE);
-    setSocketTimeout(sockfd, 5);
+    setSocketTimeout(sockfd, 10);
     struct sockaddr_in senderAddr;
     socklen_t addrLen = sizeof(senderAddr);
     char buffer[BUFFER_SIZE];

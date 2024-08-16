@@ -146,7 +146,7 @@ int Client::sendExitRequest(const char *ipAddress) {
     RequestData req;
     req.request = Request::EXIT;
 
-    if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+    if (sendto(sockfd, &req, sizeof(req), MSG_CONFIRM, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
         cerr << "ERROR sending request." << endl;
         close(sockfd);
         return -1;

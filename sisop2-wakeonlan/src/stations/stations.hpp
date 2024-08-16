@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <netinet/in.h> 
+#include <chrono>  // Para std::this_thread::sleep_for
 
 #define PORT_SOCKET 55000
 #define PORT_SLEEP 55001

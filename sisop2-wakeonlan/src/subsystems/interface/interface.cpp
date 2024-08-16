@@ -63,7 +63,7 @@ void drawHeader() {
 }    
 
 void drawInterface(){
-    // clearScreen(); 
+    clearScreen(); 
     // drawHeader();
 }
 
@@ -128,6 +128,7 @@ void manipulateInput(char input[100], Client &client, Server &server){
         std::exit(EXIT_SUCCESS);
     } else if (startsWithWake && type == Type::MANAGER ) {
         word.erase(0, 5);
+        cout << "Mandando WakeOnLan para " << word << endl;
         Monitoring::sendWoLPacket(server, word);
     } else {
         std::cout << "Comando inválido!" << std::endl;

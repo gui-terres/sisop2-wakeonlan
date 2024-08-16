@@ -13,6 +13,8 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <chrono>  // Para std::this_thread::sleep_for
+#include <thread>
 
 #include "stations.hpp"
 
@@ -162,6 +164,7 @@ int Server::sendManagerInfo() {
             cerr << "ERROR on sendto." << endl;
             break;
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     close(sockfd);
@@ -195,7 +198,7 @@ int Server::sendWoLPacket(StationData &client) {
     std::vector<uint8_t> packet;
     assembleWoLPacket(packet, client);
 
-    if (sendto(sockfd, packet.data(), packet.size(), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+    if (sendto(sockfd, packet.data(), packet.size(), MSG_CONFIRM, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
         close(sockfd);
         return -1;
     }
@@ -229,7 +232,7 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client) {
 
 void Server::waitForRequests() {
     int sockfd = createSocket(PORT_EXIT);
-    Station::setSocketTimeout(sockfd,10);
+    // Station::setSocketTimeout(sockfd,1);
 
     while (!stopThreads.load()) {
         RequestData request;
@@ -328,9 +331,9 @@ void Server::sendTable() {
 
         char clientIP[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &cliaddr.sin_addr, clientIP, sizeof(clientIP));
-        std::cout << "Solicitação recebida de: " << clientIP << std::endl;
+        // std::cout << "Solicitação recebida de: " << clientIP << std::endl;
 
-        std::cout << "Pediu tabela" << std::endl;
+        // std::cout << "Pediu tabela" << std::endl;
 
         // Pegar o vetor de discoveredClients
         std::vector<StationData> clients = this->getDiscoveredClients();
@@ -340,7 +343,7 @@ void Server::sendTable() {
         if (sentBytes < 0) {
             perror("Erro ao enviar dados");
         } else {
-            std::cout << "Tabela enviada" << std::endl;
+            // std::cout << "Tabela enviada" << std::endl;
         }
     }
 
