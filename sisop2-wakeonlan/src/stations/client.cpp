@@ -45,59 +45,25 @@ int Client::enterWakeOnLan(int argc) {
     pcData.id = id;    
 
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
-        cerr << "ERROR on sendto." << endl;
+        perror("ERROR on sendto enterWakeOnLan");
 
     close(sockfd);
     return 0;
-}
-
-void Client::waitForSleepRequests() {
-    int sockfd = createSocket(PORT_SLEEP);
-    if (sockfd == -1) return;
-    setSocketTimeout(sockfd, 1);
-
-    while (!stopThreads.load()) {
-        // Adicione um log ou printf para verificar o status de stopThreads
-        // std::cout << "stopThreads: " << stopThreads.load() << std::endl;
-
-        RequestData request;
-        struct sockaddr_in from;
-        socklen_t fromlen = sizeof(from);
-        ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
-
-        if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom in waitForSleepRequests." << endl;
-            continue;
-        }
-
-        if (request.request == Request::SLEEP_STATUS) {
-            Status status = Status::AWAKEN;
-            sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
-        }
-    }
-
-    close(sockfd);
 }
 
 int Client::getManagerData() {
     int sockfd = createSocket(PORT_MANAGER_DATA);
     if (sockfd == -1) return -2;
 
-    struct timeval tv;
-    tv.tv_sec = 1;  // Tempo de espera em segundos
-    tv.tv_usec = 0; // Tempo de espera em microsegundos
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
-        cerr << "ERROR setting socket timeout." << endl;
-        close(sockfd);
-        return -2;
-    }
+    setSocketTimeout(sockfd, 4);
 
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
+    
+    StationData managerInfo_temp;
+    memset(&managerInfo_temp, 0, sizeof(managerInfo_temp));
 
-    memset(&managerInfo, 0, sizeof(managerInfo));
-
-    ssize_t bytesReceived = recvfrom(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, &clilen);
+    ssize_t bytesReceived = recvfrom(sockfd, &managerInfo_temp, sizeof(managerInfo_temp), 0, (struct sockaddr *)&cli_addr, &clilen);
     if (bytesReceived < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
             // cerr << "ERROR: Timeout receiving response. Retrying..." << endl;
@@ -110,6 +76,8 @@ int Client::getManagerData() {
             return -2;
         }    
     }
+
+    managerInfo = managerInfo_temp;
 
     cout << "Manager Info" << endl;
     cout << "Hostname: " << managerInfo.hostname << endl;

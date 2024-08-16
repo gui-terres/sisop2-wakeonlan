@@ -86,6 +86,7 @@ void runManagerMode(bool isDocker = false) {
 
     threads.push_back(thread(Discovery::discoverParticipants, ref(server)));
     threads.push_back(thread(&Server::sendManagerInfo, &server));
+    threads.push_back(thread(&Server::waitForSleepRequests, &server));
     threads.push_back(thread(Management::displayServer, ref(server)));
     threads.push_back(thread(&Server::waitForRequests, &server));
     threads.push_back(thread(read_input, ref(client), ref(server)));

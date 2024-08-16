@@ -210,20 +210,32 @@ void Station::startElection() {
     int sockfd = createSocket(PORT_ELECTION);  // Abra o socket uma vez
     setSocketTimeout(sockfd, 1);
     bool a = false;
-    for (StationData& client : discoveredClients) {
-        int clientId = getLastFieldOfIP(client.ipAddress);
-        cout << client.hostname << endl;
-        cout << clientId << endl;
-        cout << id << endl;
-        if (clientId > id) {
-            cout << "enviando msg" << endl;
-            // Envia mensagem de eleição
-            Message electionMessage = {MessageType::ELECTION, id};
-            // Enviar mensagem de eleição ao cliente
-            sendMessage(sockfd, client, electionMessage);
-            a = true;
+    Client client;
+    RequestData req;
+    Status status;
+    int result = client.requestSleepStatus(managerInfo.ipAddress, req, status);
+    cout << "AAAAAAAAAAAAAAAAA " << result << endl;
+    // std::cout << "Request result for " << client.ipAddress << ": " << result << std::endl;
+    if (result != 0) {
+        for (StationData& client : discoveredClients) {
+            int clientId = getLastFieldOfIP(client.ipAddress);
+            cout << client.hostname << endl;
+            cout << clientId << endl;
+            cout << id << endl;
+            if (clientId > id && client.status == Status::AWAKEN) {
+                cout << "enviando msg" << endl;
+                // Envia mensagem de eleição
+                Message electionMessage = {MessageType::ELECTION, id};
+                // Enviar mensagem de eleição ao cliente
+                sendMessage(sockfd, client, electionMessage);
+
+                receivedOk = waitForOkMessage();
+
+                if (receivedOk) {
+                    break;
+                }
+            }
         }
-    }
 
 
     // Aguardar resposta do cliente
@@ -342,4 +354,90 @@ void Station::sendOkResponse(const sockaddr_in& senderAddr) {
     sendto(sendSockfd, &okMessage, sizeof(okMessage), 0, (struct sockaddr *)&senderAddr, sizeof(senderAddr));
 
     close(sendSockfd);
+}
+
+void Station::waitForSleepRequests() {
+    int sockfd = createSocket(PORT_SLEEP);
+    if (sockfd == -1) return;
+    setSocketTimeout(sockfd, 5);
+
+    while (!stopThreads.load()) {
+        // Adicione um log ou printf para verificar o status de stopThreads
+        // std::cout << "stopThreads: " << stopThreads.load() << std::endl;
+
+        RequestData request;
+        struct sockaddr_in from;
+        socklen_t fromlen = sizeof(from);
+        ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
+
+        if (bytesReceived < 0) {
+            perror("ERROR on recvfrom in waitForSleepRequests.");
+            continue;
+        }
+
+        if (request.request == Request::SLEEP_STATUS) {
+            Status status = Status::AWAKEN;
+            sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
+        }
+    }
+
+    close(sockfd);
+}
+
+int Station::requestSleepStatus(const char *ipAddress, RequestData request, Status &status) {
+    int sockfd = createSocket(PORT_SLEEP);
+
+    // Definir tempo limite de 1 segundo para recebimento
+    struct timeval tv;
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
+        cerr << "ERROR setting socket timeout." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+    struct sockaddr_in recipient_addr;
+    memset(&recipient_addr, 0, sizeof(recipient_addr));
+    recipient_addr.sin_family = AF_INET;
+    recipient_addr.sin_port = htons(PORT_SLEEP);
+    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
+        cerr << "ERROR invalid address/ Address not supported." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+    aqui:
+    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+        perror("ERROR sending request requestSleepStatus");
+        if (errno == ENETUNREACH){
+            goto aqui;
+        }
+        close(sockfd);
+        return -1;
+    }
+
+    // Receber resposta
+    struct sockaddr_in from;
+    socklen_t fromlen = sizeof(from);
+    Status responseStatus = Status::AWAKEN;
+
+    ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
+    if (bytesReceived < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            cerr << "ERROR: Timeout receiving response in requestSleepStatus." << endl;
+            if (type == Type::PARTICIPANT){
+                return -1;
+            }
+        } else {
+            cerr << "ERROR receiving response." << endl;
+        }
+        status = Status::ASLEEP;
+        close(sockfd);
+        return 0;
+    }
+
+    status = responseStatus;
+    close(sockfd);
+    return 0;
 }

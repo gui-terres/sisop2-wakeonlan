@@ -85,57 +85,6 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     return 0;
 }
 
-int Server::requestSleepStatus(const char *ipAddress, RequestData request, Status &status) {
-    int sockfd = createSocket(PORT_SLEEP);
-
-    // Definir tempo limite de 1 segundo para recebimento
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
-        cerr << "ERROR setting socket timeout." << endl;
-        close(sockfd);
-        return -1;
-    }
-
-    struct sockaddr_in recipient_addr;
-    memset(&recipient_addr, 0, sizeof(recipient_addr));
-    recipient_addr.sin_family = AF_INET;
-    recipient_addr.sin_port = htons(PORT_SLEEP);
-    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
-        cerr << "ERROR invalid address/ Address not supported." << endl;
-        close(sockfd);
-        return -1;
-    }
-
-    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
-        cerr << "ERROR sending request." << endl;
-        close(sockfd);
-        return -1;
-    }
-
-    // Receber resposta
-    struct sockaddr_in from;
-    socklen_t fromlen = sizeof(from);
-    Status responseStatus = Status::AWAKEN;
-
-    ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
-    if (bytesReceived < 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            cerr << "ERROR: Timeout receiving response in requestSleepStatus." << endl;
-        } else {
-            cerr << "ERROR receiving response." << endl;
-        }
-        status = Status::ASLEEP;
-        close(sockfd);
-        return 0;
-    }
-
-    status = responseStatus;
-    close(sockfd);
-    return 0;
-}
-
 int Server::sendManagerInfo() {
     int sockfd = createSocket();
     if (sockfd == -1) return 1;
@@ -161,7 +110,7 @@ int Server::sendManagerInfo() {
     // cout << "Mac Address: " << pcData.macAddress << endl;
     while (!stopThreads.load()) {
         if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0){
-            cerr << "ERROR on sendto." << endl;
+            perror("ERROR on sendto sendManagerInfo");
             break;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -349,4 +298,3 @@ void Server::sendTable() {
 
     close(sockfd);
 }
-

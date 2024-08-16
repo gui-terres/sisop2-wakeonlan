@@ -89,6 +89,12 @@ class Station {
 public:
     // std::vector<std::string> stationIPs;
     std::vector<StationData> discoveredClients;
+    StationData managerInfo = {
+        hostname: PLACEHOLDER,
+        ipAddress: PLACEHOLDER,
+        macAddress: PLACEHOLDER,
+        status: Status::ASLEEP
+    };
 
     int getHostname(char *buffer, size_t bufferSize, StationData &hostname);
     int getIpAddress(StationData &data);
@@ -105,13 +111,14 @@ public:
     void sendCoordinatorMessage();
     static void listenForElectionMessages();
     void sendOkResponse(const sockaddr_in& senderAddr);
+    int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
+    void waitForSleepRequests();
     // static std::vector<std::string> stationIPs;
 };
 
 class Server: public Station {
 public:
     int collectParticipants(const char* addr);
-    int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
     std::vector<StationData>& getDiscoveredClients();
     int sendWoLPacket(StationData &client);
     void waitForRequests();
@@ -124,15 +131,7 @@ public:
 
 class Client : public Station {
 public:
-    StationData managerInfo = {
-        hostname: PLACEHOLDER,
-        ipAddress: PLACEHOLDER,
-        macAddress: PLACEHOLDER,
-        status: Status::ASLEEP
-    };
-
     int enterWakeOnLan(int argc);
-    void waitForSleepRequests();
     int sendExitRequest(const char *ipAddress);
     int getManagerData();
     //void sendMessage(const std::string &message, const std::string &ipAddress);
