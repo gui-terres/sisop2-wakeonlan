@@ -13,7 +13,7 @@ void Management::displayServer(Server &server) {
         cout << "Para acordar um computador, digite WAKE + hostname" << endl;
 
         if (!server.discoveredClients.empty())
-            drawTable(server);
+            drawTable(server.discoveredClients);
         else
           cout << endl << "Sem clientes no momento!" << endl << endl << endl;
 
@@ -33,6 +33,11 @@ void Management::displayClient(Client &client) {
             cout << "IP Address: " << client.managerInfo.ipAddress << endl;
             cout << "Mac Address: " << client.managerInfo.macAddress << endl;
         }
+
+        if (!client.discoveredClients.empty())
+            drawTable(client.discoveredClients);
+        else
+          cout << endl << "Sem outros clientes no momento!" << endl << endl << endl;
 
         cout << endl;
         this_thread::sleep_for(chrono::seconds(1));

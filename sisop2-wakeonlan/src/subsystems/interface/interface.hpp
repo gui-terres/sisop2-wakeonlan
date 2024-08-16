@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <cstdlib> 
 #include <unistd.h>
+#include <vector>
 
 // Função para limpar a tela do terminal
 void clearScreen();
@@ -28,9 +29,9 @@ void restoreTermSettings();
 
 void drawTableHeader();
 
-void drawTableData(Server &server);
+void drawTableData(const std::vector<StationData>& discoveredClients);
 
-void drawTable(Server &server);
+void drawTable(const std::vector<StationData>& discoveredClients);
 
 void clear_line();
 

@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <condition_variable>
 #include <atomic>
+#include <netinet/in.h> 
 
 #define PORT_SOCKET 55000
 #define PORT_SLEEP 55001
@@ -17,6 +18,7 @@
 #define PORT_ELECTION 55004
 #define PORT_COORDINATOR 55005
 #define PORT_TABLE 55006
+#define PORT_ELECTION_RESPONSE 55007
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -92,16 +94,16 @@ public:
     int getMacAddress(int sockfd, char *macAddress, size_t size);
     int getStatus(Status &status);
     int createSocket(int port = 0);
+    int getLastFieldOfIP(const char* ip);
     void setSocketBroadcastOptions(int sockfd);
-    void sendMessage(const char* destIP, Message msg, int port) ;
-    Message receiveMessage(int port);
-
-    // New methods to support the election process
-    void startElection();
-    void sendCoordinatorMessage();
-    void listenForCoordinator();
+    void setSocketReuseOptions(int sockfd);
     void setSocketTimeout(int sockfd, int timeoutSec);
-
+    void startElection();
+    void sendMessage(int sockfd, const StationData& client, const Message& message); 
+    bool waitForOkMessage();
+    void sendCoordinatorMessage();
+    static void listenForElectionMessages();
+    void sendOkResponse(const sockaddr_in& senderAddr);
     // static std::vector<std::string> stationIPs;
 };
 
@@ -113,9 +115,7 @@ public:
     int sendWoLPacket(StationData &client);
     void waitForRequests();
     int sendManagerInfo();
-    void startElection(); // Start election from the server's perspective
 
-    void updateStationIPs();
     //void receiveMessages();
     // StationData* requestParticipantData(const char *ipAddress);
     void sendTable();
@@ -134,7 +134,6 @@ public:
     void waitForSleepRequests();
     int sendExitRequest(const char *ipAddress);
     int getManagerData();
-    void startElection(); // Start election from the client's perspective
     //void sendMessage(const std::string &message, const std::string &ipAddress);
     void askForTable();
 };

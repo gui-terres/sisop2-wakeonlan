@@ -91,8 +91,8 @@ void drawTableHeader() {
     std::cout << "|______________|___________________|_______________|________|" << std::endl;
 }
 
-void drawTableData(Server &server) {
-    for (const auto &client : server.discoveredClients) {
+void drawTableData(const std::vector<StationData>& discoveredClients) {
+    for (const auto &client : discoveredClients) {
         std::cout << "|              |                   |               |        |" << std::endl;
         std::cout << "| " << std::setw(12) << client.hostname
                  << " | " << std::setw(17) << client.macAddress
@@ -103,9 +103,9 @@ void drawTableData(Server &server) {
     }
 }
 
-void drawTable(Server &server) {
+void drawTable(const std::vector<StationData>& discoveredClients) {
     drawTableHeader();
-    drawTableData(server);
+    drawTableData(discoveredClients);
 }
 
 
@@ -122,7 +122,8 @@ void manipulateInput(char input[100], Client &client, Server &server){
     bool startsWithWake = (word.length() >= 4 && word.substr(0, 4) == "WAKE");
     if (word == "EXIT") {
         std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
-        client.sendExitRequest(BROADCAST_ADDR);
+        if (type == Type::PARTICIPANT)
+            client.sendExitRequest(client.managerInfo.ipAddress);
         restoreTermSettings();
         std::exit(EXIT_SUCCESS);
     } else if (startsWithWake && type == Type::MANAGER ) {
@@ -136,31 +137,53 @@ void manipulateInput(char input[100], Client &client, Server &server){
 
 void read_input(Client &client, Server &server) {
     setTermNoBufferedInput(); // Configura terminal para entrada sem buffer
-    n=0;
+    n = 0;
     char ch;
-    for (int i = 0; i < 100; ++i) {
-        input[i] = '\0';
-    }
+    std::string inputStr;
+
     while (!stopThreads.load()) {
-        if (read(STDIN_FILENO, &ch, 1) == 1) { 
-            if (ch == '\b') { 
-                if (n > 0) {
-                    cout << "aaaa" << endl;
-                    n--;
-                    input[n] = '\0';
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+
+        // Configura o tempo de espera para a função select
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 500000; // Tempo de espera de 0.5 segundos
+
+        // Verifica se há dados disponíveis para leitura
+        int ret = select(STDIN_FILENO + 1, &readfds, nullptr, nullptr, &tv);
+
+        if (ret == -1) {
+            std::cerr << "Erro na função select" << std::endl;
+            continue;
+        }
+
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {
+            if (read(STDIN_FILENO, &ch, 1) == 1) { 
+                if (ch == '\b') { 
+                    if (n > 0) {
+                        n--;
+                        input[n] = '\0';
+                    }
+                } else if (ch == '\n') { 
+                    inputStr = std::string(input);
+                    manipulateInput(input, client, server);
+                    // Limpa o input para o próximo comando
+                    std::fill(std::begin(input), std::end(input), '\0');
+                    n = 0;
+                } else {
+                    input[n++] = ch; 
+                    input[n] = '\0'; 
                 }
-            } else if (ch == '\n') { 
-                manipulateInput(input,client, server);
-                break; 
-            } else {
-                input[n++] = ch; 
-                input[n] = '\0'; 
+                std::cout << "\033[1F"; // Move o cursor para cima em uma linha
+                std::cout << "\033[2K"; // Limpa a linha atual
+                std::cout << input << std::endl;
             }
-            std::cout << "\033[1F"; // Move o cursor para cima em uma linha
-            std::cout << "\033[2K"; // Limpa a linha atual
-            cout << string(input) << endl;
         }
     }
+
+    restoreTermSettings();        
 }
 
 void handleSigInt(int signum) {
@@ -174,8 +197,10 @@ void isCTRLc() {
 void isCTRLcT(Client &client) {
     while (!stopThreads.load()) {
         if(ctrl) {
-            std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
-            client.sendExitRequest(client.managerInfo.ipAddress);
+            if (type == Type::PARTICIPANT){
+                std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;            
+                client.sendExitRequest(client.managerInfo.ipAddress);
+            }
             restoreTermSettings();
             std::exit(EXIT_SUCCESS); 
         }

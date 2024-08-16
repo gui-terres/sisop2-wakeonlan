@@ -17,7 +17,7 @@
 #include "stations.hpp"
 
 #define BUFFER_SIZE 256
-#define BUFFER_SIZE2 1024
+// #define BUFFER_SIZE2 1024
 
 using namespace std;
 
@@ -40,7 +40,7 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
 
-    while (true) {
+    while (!stopThreads.load()) {
         StationData receivedData;
         memset(&receivedData, 0, sizeof(receivedData));
 
@@ -271,9 +271,8 @@ void Server::waitForRequests() {
     close(sockfd);
 }
 
-void Server::startElection() {
-    Station::startElection();
-}
+#define BUFFER_SIZE2 65536  // Por exemplo, 64 KB
+
 
 void Server::sendTable() {
     int sockfd;
@@ -293,6 +292,14 @@ void Server::sendTable() {
     servaddr.sin_addr.s_addr = INADDR_ANY;
     servaddr.sin_port = htons(PORT_TABLE);
 
+    // Configurar a opção SO_REUSEADDR
+    int reuse = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        perror("Erro ao configurar SO_REUSEADDR");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
     // Vincular o socket
     if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         perror("Erro ao bind o socket");
@@ -306,19 +313,37 @@ void Server::sendTable() {
     while (!stopThreads.load()) {
         len = sizeof(cliaddr);
 
-        // Receber solicitação do client
-        int n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE2, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
-        buffer[n] = '\0';
+        // Receber solicitação do cliente
+        int n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE2, 0, (struct sockaddr *)&cliaddr, &len);
+        if (n < 0) {
+            perror("Erro ao receber dados");
+            continue; // Continue ouvindo em caso de erro
+        }
 
-        // std::cout << "Pediu tabela" << std::endl;
+        // Verificar se os dados recebidos são maiores do que o buffer
+        if (n > BUFFER_SIZE2) {
+            std::cerr << "Dados recebidos excedem o tamanho do buffer" << std::endl;
+            continue;
+        }
+
+        char clientIP[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &cliaddr.sin_addr, clientIP, sizeof(clientIP));
+        std::cout << "Solicitação recebida de: " << clientIP << std::endl;
+
+        std::cout << "Pediu tabela" << std::endl;
 
         // Pegar o vetor de discoveredClients
-        std::vector<StationData>& clients = this->getDiscoveredClients();
-        // Enviar o vetor de StationData de volta ao client
-        sendto(sockfd, clients.data(), clients.size() * sizeof(StationData), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+        std::vector<StationData> clients = this->getDiscoveredClients();
 
-        // std::cout << "Tabela enviada" << std::endl;
+        // Enviar o vetor de StationData de volta ao cliente
+        int sentBytes = sendto(sockfd, clients.data(), clients.size() * sizeof(StationData), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+        if (sentBytes < 0) {
+            perror("Erro ao enviar dados");
+        } else {
+            std::cout << "Tabela enviada" << std::endl;
+        }
     }
 
     close(sockfd);
 }
+

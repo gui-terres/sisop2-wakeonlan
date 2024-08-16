@@ -29,6 +29,8 @@ using namespace std;
 condition_variable cv;
 atomic<bool> stopThreads(false); // Atômica para garantir visibilidade entre threads
 
+void runClientMode(int argc, bool isDocker);
+
 // Função para atualizar o tipo do cliente para gerente
 void upgradeClientToManager(Client &client) {
     while (true) {
@@ -40,13 +42,34 @@ void upgradeClientToManager(Client &client) {
                 // Sinaliza para parar as outras threads
                 stopThreads.store(true);
                 cv.notify_all();
-                cout << "oiii" << endl;
+                cout << "opioio" << endl;
                 // Aguarda o término das threads do cliente
                 // Threads do cliente devem verificar stopThreads
                 return;
             }
         }
-        this_thread::sleep_for(chrono::seconds(1)); // Verifica a cada segundo
+        // this_thread::sleep_for(chrono::seconds(1)); // Verifica a cada segundo
+    }
+}
+
+// Função para atualizar o tipo do gerente para cliente
+void downgradeManagerToClient(Server &server) {
+    while (true) {
+        {
+            lock_guard<mutex> lock(mtx);
+            if (type == Type::PARTICIPANT) {
+                cout << "Gerente se tornando cliente..." << endl;
+
+                // Sinaliza para parar as outras threads
+                stopThreads.store(true);
+                cv.notify_all();
+
+                // Aguarda o término das threads do gerente
+                // Threads do gerente devem verificar stopThreads
+                return;
+            }
+        }
+        // this_thread::sleep_for(chrono::seconds(1)); // Verifica a cada segundo
     }
 }
 
@@ -59,86 +82,107 @@ void runManagerMode(bool isDocker = false) {
 
     stopThreads.store(false);
 
+    vector<thread> threads;
 
-    thread t1(Discovery::discoverParticipants, ref(server));
-    thread t2(&Server::sendManagerInfo, &server);
-    thread t3(Management::displayServer, ref(server));
-    thread t5(&Server::waitForRequests, &server);
-    thread t6(read_input, ref(client), ref(server));
-    thread t8(isCTRLc);
-    //thread t7(&Server::receiveMessages, &server);
-    thread t7(&Server::sendTable, &server);
-    thread t9(&Server::sendCoordinatorMessage, &server);
+    threads.push_back(thread(Discovery::discoverParticipants, ref(server)));
+    threads.push_back(thread(&Server::sendManagerInfo, &server));
+    threads.push_back(thread(Management::displayServer, ref(server)));
+    threads.push_back(thread(&Server::waitForRequests, &server));
+    threads.push_back(thread(read_input, ref(client), ref(server)));
+    threads.push_back(thread(isCTRLcT, ref(client)));
+    threads.push_back(thread(&Server::sendTable, &server));
+    threads.push_back(thread(downgradeManagerToClient, ref(server))); // Verifica quando deve se tornar cliente
 
-    t1.join();
-    t2.join();
-    t3.join();
-    t5.join();
-    t6.join();
-    t8.join();    
-    t7.join();
-}
-
-// Função principal para executar o modo de cliente
-void runClientMode(int argc, bool isDocker = false) {
-    !isDocker ? drawInterface() : void();
-    cout << "Client mode" << (isDocker ? " [Docker]" : "") << endl;
-    Server server;
-    Client client;
-    type = Type::PARTICIPANT;
-    id = getpid();
-    
-    thread t1(Discovery::searchForManager, ref(client), argc);
-    thread t2(&Client::waitForSleepRequests, &client);
-    thread t3(Management::displayClient, ref(client));
-    thread t4(Management::checkAndElectClient, ref(client));
-    thread t5(Discovery::enterWakeOnLan, ref(client), argc);
-    thread t6(read_input, ref(client), ref(server));
-    thread t7(isCTRLc);
-    thread t8(isCTRLcT, ref(client));
-
-    // Thread para escutar a porta COORDINATOR e iniciar eleição em caso de timeout
-    thread t9(&Station::listenForCoordinator, &client);
-    //thread t13(sendPeriodicMessage, ref(client));
-    thread t13(&Client::askForTable, ref(client));
-
-    // Thread para verificar a atualização do tipo
-    thread t10(upgradeClientToManager, ref(client));
-
+    // Loop para verificar se as threads devem parar
     while (!stopThreads.load()) {
         this_thread::sleep_for(chrono::seconds(1)); // Ajuste o intervalo conforme necessário
     }
-    cout << "oiii" << endl;
-    // Espera todas as threads terminarem antes de iniciar o modo de gerente
-    if (type == Type::MANAGER) {
-        cout << "Transição para o modo de gerente..." << endl;
-        t1.join();
-        t2.join();
-        t3.join();
-        t4.join();
-        t5.join();
-        t6.join();
-        t7.join();
-        t8.join();
-        t9.join();
-        t13.join();
-        t10.join();         
+
+    // Verifica se houve transição para o modo de gerente
+    if (type == Type::PARTICIPANT) {
+        cout << "Transição para o modo de cliente..." << endl;
+        
+        // Aguarda todas as threads terminarem
+        for (auto &t : threads) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+
         // Inicia o modo de gerente
-        runManagerMode(isDocker);
+        runClientMode(0,isDocker);
+    } else {
+        // Aguarda todas as threads terminarem antes de finalizar o modo cliente
+        for (auto &t : threads) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+    }
+}
+
+
+// Função exemplo para depuração
+void threadFunction(const string& name) {
+    cout << name << " started." << endl;
+    this_thread::sleep_for(chrono::seconds(1));
+    cout << name << " finished." << endl;
+}
+
+void runClientMode(int argc, bool isDocker = false) {
+    if (!isDocker) {
+        drawInterface();
     }
 
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    t5.join();
-    t6.join();
-    t7.join();
-    t8.join();    
-    t9.join();
-    t13.join();
-    t10.join();  // Espera as novas threads terminarem
+    cout << "Client mode" << (isDocker ? " [Docker]" : "") << endl;
+
+    Server server;
+    Client client;
+    type = Type::PARTICIPANT;
+
+    // Inicializa as threads necessárias para o modo cliente
+    vector<thread> clientThreads;
+    clientThreads.push_back(thread(Discovery::searchForManager, ref(client), argc));
+    clientThreads.push_back(thread(&Client::waitForSleepRequests, &client));
+    clientThreads.push_back(thread(Management::displayClient, ref(client)));
+    clientThreads.push_back(thread(Discovery::enterWakeOnLan, ref(client), argc));
+    clientThreads.push_back(thread(read_input, ref(client), ref(server)));
+    clientThreads.push_back(thread(isCTRLc));
+    clientThreads.push_back(thread(isCTRLcT, ref(client)));
+    clientThreads.push_back(thread(&Client::askForTable, ref(client)));
+    clientThreads.push_back(thread(Station::listenForElectionMessages));
+
+    // Thread para verificar a atualização do tipo de cliente para gerente
+    clientThreads.push_back(thread(upgradeClientToManager, ref(client)));
+
+    // Loop para verificar se as threads devem parar
+    while (!stopThreads.load()) {
+        this_thread::sleep_for(chrono::seconds(1)); // Ajuste o intervalo conforme necessário
+    }
+
+    // Verifica se houve transição para o modo de gerente
+    if (type == Type::MANAGER) {
+        cout << "Transição para o modo de gerente..." << endl;
+        
+        // Aguarda todas as threads terminarem
+        for (size_t i = 0; i < clientThreads.size(); ++i) {
+            cout << "Joining thread " << i << " with ID: " << clientThreads[i].get_id() << endl;
+            clientThreads[i].join();
+        }
+        cout << "All threads have finished." << endl;
+        // Inicia o modo de gerente
+        runManagerMode(isDocker);
+    } else {
+        // Aguarda todas as threads terminarem antes de finalizar o modo cliente
+        for (size_t i = 0; i < clientThreads.size(); ++i) {
+            cout << "Joining thread " << i << " with ID: " << clientThreads[i].get_id() << endl;
+            if (clientThreads[i].joinable()) {
+                clientThreads[i].join();
+            }
+        }
+    }
 }
+
 
 
 // Função principal do programa
