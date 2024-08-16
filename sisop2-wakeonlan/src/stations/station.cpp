@@ -149,18 +149,19 @@ int Station::createSocket(int port)
     if (port != 0)
     {
         int reuse = 1;
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+        {
             std::cerr << "Failed to set SO_REUSEADDR: " << std::strerror(errno) << std::endl;
             close(sockfd);
             return -1;
         }
-    
+
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_port = htons(port);
         addr.sin_addr.s_addr = INADDR_ANY;
         bzero(&(addr.sin_zero), 8);
-        
+
         if (bind(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr)) < 0)
         {
             cerr << "ERROR on binding socket. (" << port << "): " << strerror(errno) << endl;
@@ -181,22 +182,23 @@ void Station::setSocketBroadcastOptions(int sockfd)
     }
 }
 
-
 void Station::setSocketReuseOptions(int sockfd)
 {
     int opt = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    {
         cerr << "Failed to set SO_REUSEADDR: " << strerror(errno) << endl;
     }
 }
 
-
-int Station::getLastFieldOfIP(const char* ip) {
+int Station::getLastFieldOfIP(const char *ip)
+{
     // Procura a última ocorrência de '.' no IP
-    const char* lastDot = strrchr(ip, '.');
-    
+    const char *lastDot = strrchr(ip, '.');
+
     // Verifica se encontrou um ponto
-    if (lastDot != nullptr) {
+    if (lastDot != nullptr)
+    {
         // Converte a parte após o último ponto para um inteiro
         return atoi(lastDot + 1);
     }
@@ -205,9 +207,10 @@ int Station::getLastFieldOfIP(const char* ip) {
     return -1;
 }
 
-void Station::startElection() {
+void Station::startElection()
+{
     bool receivedOk = false;
-    int sockfd = createSocket(PORT_ELECTION);  // Abra o socket uma vez
+    int sockfd = createSocket(PORT_ELECTION); // Abra o socket uma vez
     setSocketTimeout(sockfd, 1);
     bool a = false;
     Client client;
@@ -216,13 +219,16 @@ void Station::startElection() {
     int result = client.requestSleepStatus(managerInfo.ipAddress, req, status);
     cout << "AAAAAAAAAAAAAAAAA " << result << endl;
     // std::cout << "Request result for " << client.ipAddress << ": " << result << std::endl;
-    if (result != 0) {
-        for (StationData& client : discoveredClients) {
+    if (result != 0)
+    {
+        for (StationData &client : discoveredClients)
+        {
             int clientId = getLastFieldOfIP(client.ipAddress);
             cout << client.hostname << endl;
             cout << clientId << endl;
             cout << id << endl;
-            if (clientId > id && client.status == Status::AWAKEN) {
+            if (clientId > id && client.status == Status::AWAKEN)
+            {
                 cout << "enviando msg" << endl;
                 // Envia mensagem de eleição
                 Message electionMessage = {MessageType::ELECTION, id};
@@ -231,37 +237,41 @@ void Station::startElection() {
 
                 receivedOk = waitForOkMessage();
 
-                if (receivedOk) {
+                if (receivedOk)
+                {
                     break;
                 }
             }
         }
 
+        // Aguardar resposta do cliente
+        receivedOk = waitForOkMessage();
+        // Se não recebeu nenhuma mensagem de OK
+        if (!receivedOk && !a)
+        {
+            // Autoproclama-se líder
+            type = Type::MANAGER;
+            cout << "Eu sou o novo coordenador (ID: " << id << ")" << endl;
+            // Envia mensagem de coordenação para todos
+            sendCoordinatorMessage();
+        }
 
-    // Aguardar resposta do cliente
-    receivedOk = waitForOkMessage();
-    // Se não recebeu nenhuma mensagem de OK
-    if (!receivedOk && !a) {
-        // Autoproclama-se líder
-        type = Type::MANAGER;
-        cout << "Eu sou o novo coordenador (ID: " << id << ")" << endl;
-        // Envia mensagem de coordenação para todos
-        sendCoordinatorMessage();
+        close(sockfd); // Fecha o socket após o loop
     }
-
-    close(sockfd); // Fecha o socket após o loop
 }
 
-void Station::sendMessage(int sockfd, const StationData& client, const Message& message) {
+void Station::sendMessage(int sockfd, const StationData &client, const Message &message)
+{
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(PORT_ELECTION);  // Use a mesma porta para coordenação
+    addr.sin_port = htons(PORT_ELECTION); // Use a mesma porta para coordenação
     inet_pton(AF_INET, client.ipAddress, &addr.sin_addr);
 
-    sendto(sockfd, &message, sizeof(message), 0, (struct sockaddr*)&addr, sizeof(addr));
+    sendto(sockfd, &message, sizeof(message), 0, (struct sockaddr *)&addr, sizeof(addr));
 }
 
-bool Station::waitForOkMessage() {
+bool Station::waitForOkMessage()
+{
     int sockfd = createSocket(PORT_ELECTION_RESPONSE);
     setSocketTimeout(sockfd, 10);
     struct sockaddr_in senderAddr;
@@ -269,11 +279,14 @@ bool Station::waitForOkMessage() {
     char buffer[BUFFER_SIZE];
 
     // setSocketTimeout(sockfd, 3); // Timeout de 2 segundos
-    while (!stopThreads.load()){
-        int receivedBytes = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&senderAddr, &addrLen);
-        if (receivedBytes > 0) {
-            Message* message = (Message*)buffer;
-            if (message->type == MessageType::OK) {
+    while (!stopThreads.load())
+    {
+        int receivedBytes = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&senderAddr, &addrLen);
+        if (receivedBytes > 0)
+        {
+            Message *message = (Message *)buffer;
+            if (message->type == MessageType::OK)
+            {
                 char clientIP[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &senderAddr.sin_addr, clientIP, sizeof(clientIP));
                 std::cout << "Solicitação recebida de: " << clientIP << std::endl;
@@ -281,10 +294,12 @@ bool Station::waitForOkMessage() {
                 return true;
                 break;
             }
-        } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            perror ("Erro no waitForOkMessage");
+        }
+        else if (errno == EWOULDBLOCK || errno == EAGAIN)
+        {
+            perror("Erro no waitForOkMessage");
             close(sockfd);
-            return false;  // Continue trying to receive data
+            return false; // Continue trying to receive data
             break;
         }
     }
@@ -292,26 +307,31 @@ bool Station::waitForOkMessage() {
     return false;
 }
 
-void Station::sendCoordinatorMessage() {
-    int sockfd = createSocket(PORT_COORDINATOR);  // Abra o socket uma vez
+void Station::sendCoordinatorMessage()
+{
+    int sockfd = createSocket(PORT_COORDINATOR); // Abra o socket uma vez
     setSocketTimeout(sockfd, 1);
-    
-    while (!stopThreads.load()) {
-        for (const StationData& client : discoveredClients) {  // Use const StationData
+
+    while (!stopThreads.load())
+    {
+        for (const StationData &client : discoveredClients)
+        { // Use const StationData
             // Envia mensagem de coordenação
             Message coordinatorMessage = {MessageType::COORDINATOR, id};
-            sendMessage(sockfd, client, coordinatorMessage);  // Chame a função com const
+            sendMessage(sockfd, client, coordinatorMessage); // Chame a função com const
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1));  // Evita loop rápido contínuo
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // Evita loop rápido contínuo
     }
 
-    close(sockfd);  // Fecha o socket após o loop
+    close(sockfd); // Fecha o socket após o loop
 }
 
-void Station::listenForElectionMessages() {
+void Station::listenForElectionMessages()
+{
     Station station;
     int recvSockfd = station.createSocket(PORT_ELECTION);
-    if (recvSockfd < 0) {
+    if (recvSockfd < 0)
+    {
         cerr << "Failed to create socket for listening to election messages." << endl;
         return;
     }
@@ -321,19 +341,24 @@ void Station::listenForElectionMessages() {
     socklen_t addrLen = sizeof(senderAddr);
     Message receivedMessage;
 
-    while (!stopThreads.load()) {
+    while (!stopThreads.load())
+    {
         int bytesReceived = recvfrom(recvSockfd, &receivedMessage, sizeof(receivedMessage), 0, (struct sockaddr *)&senderAddr, &addrLen);
-        if (bytesReceived > 0) {
+        if (bytesReceived > 0)
+        {
             cout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
             cout << "Received election message" << endl;
             cout << "ID: " << id << endl;
             cout << "Message type: " << receivedMessage.type << endl;
             cout << "Message ID: " << receivedMessage.id << endl;
-            if (receivedMessage.type == MessageType::ELECTION && receivedMessage.id < id) {
+            if (receivedMessage.type == MessageType::ELECTION && receivedMessage.id < id)
+            {
                 // Responde com a mensagem "OK" se seu ID for maior
                 station.sendOkResponse(senderAddr);
             }
-        }else{
+        }
+        else
+        {
             perror("Erro ao listenForElectionMessages");
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
@@ -342,9 +367,11 @@ void Station::listenForElectionMessages() {
     close(recvSockfd);
 }
 
-void Station::sendOkResponse(const sockaddr_in& senderAddr) {
+void Station::sendOkResponse(const sockaddr_in &senderAddr)
+{
     int sendSockfd = createSocket(PORT_ELECTION_RESPONSE);
-    if (sendSockfd < 0) {
+    if (sendSockfd < 0)
+    {
         cerr << "Failed to create socket for sending OK response." << endl;
         return;
     }
@@ -356,12 +383,15 @@ void Station::sendOkResponse(const sockaddr_in& senderAddr) {
     close(sendSockfd);
 }
 
-void Station::waitForSleepRequests() {
+void Station::waitForSleepRequests()
+{
     int sockfd = createSocket(PORT_SLEEP);
-    if (sockfd == -1) return;
+    if (sockfd == -1)
+        return;
     setSocketTimeout(sockfd, 5);
 
-    while (!stopThreads.load()) {
+    while (!stopThreads.load())
+    {
         // Adicione um log ou printf para verificar o status de stopThreads
         // std::cout << "stopThreads: " << stopThreads.load() << std::endl;
 
@@ -370,12 +400,14 @@ void Station::waitForSleepRequests() {
         socklen_t fromlen = sizeof(from);
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
 
-        if (bytesReceived < 0) {
+        if (bytesReceived < 0)
+        {
             perror("ERROR on recvfrom in waitForSleepRequests.");
             continue;
         }
 
-        if (request.request == Request::SLEEP_STATUS) {
+        if (request.request == Request::SLEEP_STATUS)
+        {
             Status status = Status::AWAKEN;
             sendto(sockfd, &status, sizeof(status), 0, (struct sockaddr *)&from, fromlen);
         }
@@ -384,14 +416,16 @@ void Station::waitForSleepRequests() {
     close(sockfd);
 }
 
-int Station::requestSleepStatus(const char *ipAddress, RequestData request, Status &status) {
+int Station::requestSleepStatus(const char *ipAddress, RequestData request, Status &status)
+{
     int sockfd = createSocket(PORT_SLEEP);
 
     // Definir tempo limite de 1 segundo para recebimento
     struct timeval tv;
     tv.tv_sec = 2;
     tv.tv_usec = 0;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) < 0)
+    {
         cerr << "ERROR setting socket timeout." << endl;
         close(sockfd);
         return -1;
@@ -401,16 +435,19 @@ int Station::requestSleepStatus(const char *ipAddress, RequestData request, Stat
     memset(&recipient_addr, 0, sizeof(recipient_addr));
     recipient_addr.sin_family = AF_INET;
     recipient_addr.sin_port = htons(PORT_SLEEP);
-    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0)
+    {
         cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
         return -1;
     }
 
-    aqui:
-    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+aqui:
+    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0)
+    {
         perror("ERROR sending request requestSleepStatus");
-        if (errno == ENETUNREACH){
+        if (errno == ENETUNREACH)
+        {
             goto aqui;
         }
         close(sockfd);
@@ -423,13 +460,18 @@ int Station::requestSleepStatus(const char *ipAddress, RequestData request, Stat
     Status responseStatus = Status::AWAKEN;
 
     ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
-    if (bytesReceived < 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+    if (bytesReceived < 0)
+    {
+        if (errno == EWOULDBLOCK || errno == EAGAIN)
+        {
             cerr << "ERROR: Timeout receiving response in requestSleepStatus." << endl;
-            if (type == Type::PARTICIPANT){
+            if (type == Type::PARTICIPANT)
+            {
                 return -1;
             }
-        } else {
+        }
+        else
+        {
             cerr << "ERROR receiving response." << endl;
         }
         status = Status::ASLEEP;
