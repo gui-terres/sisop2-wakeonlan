@@ -13,6 +13,7 @@ public:
     static void displayServer(Server &server);
     static void displayClient(Client &client);
     static void checkAndElectClient(Client &client);
+    static void tempo();
 };
 
 #endif // MANAGEMENT_H

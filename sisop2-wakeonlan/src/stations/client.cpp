@@ -45,7 +45,7 @@ int Client::enterWakeOnLan(int argc) {
     pcData.id = id;    
 
     if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
-        perror("ERROR on sendto enterWakeOnLan");
+        // perror("ERROR on sendto enterWakeOnLan");
 
     close(sockfd);
     return 0;
@@ -55,7 +55,7 @@ int Client::getManagerData() {
     int sockfd = createSocket(PORT_MANAGER_DATA);
     if (sockfd == -1) return -2;
 
-    setSocketTimeout(sockfd, 4);
+    setSocketTimeout(sockfd, 3);
 
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
@@ -66,7 +66,7 @@ int Client::getManagerData() {
     ssize_t bytesReceived = recvfrom(sockfd, &managerInfo_temp, sizeof(managerInfo_temp), 0, (struct sockaddr *)&cli_addr, &clilen);
     if (bytesReceived < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            // cerr << "ERROR: Timeout receiving response. Retrying..." << endl;
+            cerr << "ERROR: Timeout receiving response. Retrying..." << endl;
             startElection();
             close(sockfd);
             return -1;  // Continue trying to receive data
@@ -78,11 +78,6 @@ int Client::getManagerData() {
     }
 
     managerInfo = managerInfo_temp;
-
-    cout << "Manager Info" << endl;
-    cout << "Hostname: " << managerInfo.hostname << endl;
-    cout << "IP Address: " << managerInfo.ipAddress << endl;
-    cout << "Mac Address: " << managerInfo.macAddress << endl;
 
     close(sockfd);
     return 0;
@@ -96,7 +91,7 @@ int Client::sendExitRequest(const char *ipAddress) {
     tv.tv_sec = 3;
     tv.tv_usec = 0;
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
-        cerr << "ERROR setting socket timeout." << endl;
+        // cerr << "ERROR setting socket timeout." << endl;
         close(sockfd);
         return -1;
     }
@@ -106,7 +101,7 @@ int Client::sendExitRequest(const char *ipAddress) {
     recipient_addr.sin_family = AF_INET;
     recipient_addr.sin_port = htons(PORT_EXIT);
     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
-        cerr << "ERROR invalid address/ Address not supported." << endl;
+        // cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
         return -1;
     }
@@ -115,7 +110,7 @@ int Client::sendExitRequest(const char *ipAddress) {
     req.request = Request::EXIT;
 
     if (sendto(sockfd, &req, sizeof(req), MSG_CONFIRM, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
-        cerr << "ERROR sending request." << endl;
+        // cerr << "ERROR sending request." << endl;
         close(sockfd);
         return -1;
     }
@@ -145,7 +140,7 @@ void Client::askForTable() {
         const char *message = "Solicitar tabela";
         sendto(sockfd, message, strlen(message), MSG_CONFIRM, (const struct sockaddr *)&servaddr, len);
 
-        std::cout << "Solicitação enviada" << std::endl;
+        // std::cout << "Solicitação enviada" << std::endl;
 
         // Receber a resposta do manager
         std::vector<StationData> receivedData(10);  // Supondo um tamanho inicial de 10 StationData
@@ -153,12 +148,12 @@ void Client::askForTable() {
         int n = recvfrom(sockfd, receivedData.data(), receivedData.size() * sizeof(StationData), 0, (struct sockaddr *)&servaddr, &len);
 
         if (n < 0) {
-            perror("Erro ao receber dados do manager");
+            // // perror("Erro ao receber dados do manager");
             continue;
         }
 
         if (n % sizeof(StationData) != 0) {
-            std::cerr << "Dados recebidos incompletos ou corrompidos" << std::endl;
+            // // std:: cerr << "Dados recebidos incompletos ou corrompidos" << std::endl;
             continue;
         }
 

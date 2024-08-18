@@ -63,7 +63,7 @@ void drawHeader() {
 }    
 
 void drawInterface(){
-    clearScreen(); 
+    // clearScreen(); 
     // drawHeader();
 }
 
@@ -121,9 +121,9 @@ void manipulateInput(char input[100], Client &client, Server &server){
     std::string word(input);
     bool startsWithWake = (word.length() >= 4 && word.substr(0, 4) == "WAKE");
     if (word == "EXIT") {
-        std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;
+        std::cout << managerInfo.hostname << ": saindo do sistema..." << std::endl;
         if (type == Type::PARTICIPANT)
-            client.sendExitRequest(client.managerInfo.ipAddress);
+            client.sendExitRequest(managerInfo.ipAddress);
         restoreTermSettings();
         std::exit(EXIT_SUCCESS);
     } else if (startsWithWake && type == Type::MANAGER ) {
@@ -156,7 +156,7 @@ void read_input(Client &client, Server &server) {
         int ret = select(STDIN_FILENO + 1, &readfds, nullptr, nullptr, &tv);
 
         if (ret == -1) {
-            std::cerr << "Erro na função select" << std::endl;
+            // std:: cerr << "Erro na função select" << std::endl;
             continue;
         }
 
@@ -199,8 +199,8 @@ void isCTRLcT(Client &client) {
     while (!stopThreads.load()) {
         if(ctrl) {
             if (type == Type::PARTICIPANT){
-                std::cout << client.managerInfo.hostname << ": saindo do sistema..." << std::endl;            
-                client.sendExitRequest(client.managerInfo.ipAddress);
+                std::cout << managerInfo.hostname << ": saindo do sistema..." << std::endl;            
+                client.sendExitRequest(managerInfo.ipAddress);
             }
             restoreTermSettings();
             std::exit(EXIT_SUCCESS); 

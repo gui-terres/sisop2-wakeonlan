@@ -18,13 +18,13 @@
 
 #include "stations.hpp"
 
-#define BUFFER_SIZE 256
 // #define BUFFER_SIZE2 1024
 
 using namespace std;
 
 // Mutex para sincronização de acesso à lista
 std::mutex mtx;
+vector<StationData> discoveredClients;
 
 // void Server::updateStationIPs() {
 //     std::lock_guard<std::mutex> lock(mtx);
@@ -54,7 +54,7 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
                 continue;
             } else {
                 // Other errors, print error and break the loop
-                cerr << "ERROR on recvfrom in collectParticipants." << endl;
+                // cerr << "ERROR on recvfrom in collectParticipants." << endl;
                 break;
             }
         }
@@ -104,16 +104,17 @@ int Server::sendManagerInfo() {
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
     pcData.status = Status::AWAKEN;
 
-    // cout << "Manager Info" << endl;
-    // cout << "Hostname: " << pcData.hostname << endl;
-    // cout << "IP Address: " << pcData.ipAddress << endl;
-    // cout << "Mac Address: " << pcData.macAddress << endl;
+    cout << "Manager Info" << endl;
+    cout << "Hostname: " << pcData.hostname << endl;
+    cout << "IP Address: " << pcData.ipAddress << endl;
+    cout << "Mac Address: " << pcData.macAddress << endl;
     while (!stopThreads.load()) {
         if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0){
             perror("ERROR on sendto sendManagerInfo");
             break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // cout << "mandei info" << endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     close(sockfd);
@@ -130,7 +131,7 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client);
 int Server::sendWoLPacket(StationData &client) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        cerr << "ERROR opening socket." << endl;
+        // cerr << "ERROR opening socket." << endl;
         return -1;
     }
 
@@ -139,7 +140,7 @@ int Server::sendWoLPacket(StationData &client) {
     recipient_addr.sin_family = AF_INET;
     recipient_addr.sin_port = htons(9);
     if (inet_pton(AF_INET, client.ipAddress, &recipient_addr.sin_addr) <= 0) {
-        cerr << "ERROR invalid address/ Address not supported." << endl;
+        // cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
         return -1;
     }
@@ -181,39 +182,39 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client) {
 
 void Server::waitForRequests() {
     int sockfd = createSocket(PORT_EXIT);
-    // Station::setSocketTimeout(sockfd,1);
+    // Server::setSocketTimeout(sockfd,1);
 
     while (!stopThreads.load()) {
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
-        cout << "entrei aqui" << endl;
+        // cout << "entrei aqui" << endl;
         
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
 
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            cerr << "ERROR: Timeout receiving Wresponse." << endl;
+            // cerr << "ERROR: Timeout receiving Wresponse." << endl;
             continue;
         } else if (bytesReceived < 0) {
-            cerr << "ERROR receiving response." << endl;
+            // cerr << "ERROR receiving response." << endl;
             continue;
         }
 
-        cout << "thcaaaaaaaaaau" << endl;
+        // cout << "thcaaaaaaaaaau" << endl;
 
         if (request.request == Request::EXIT) {
-            cout << "oiiiiiiii" << endl;
+            // cout << "oiiiiiiii" << endl;
             char ipAddress[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &from.sin_addr, ipAddress, sizeof(ipAddress)) == nullptr) {
-                cerr << "ERROR converting address." << endl;
+                // cerr << "ERROR converting address." << endl;
                 close(sockfd);                
             } else {
-                this->discoveredClients.erase(
-                    std::remove_if(this->discoveredClients.begin(), this->discoveredClients.end(),
+                discoveredClients.erase(
+                    std::remove_if(discoveredClients.begin(), discoveredClients.end(),
                                 [ipAddress](const StationData& data) {
                                     return strcmp(data.ipAddress, ipAddress) == 0;
                                 }),
-                    this->discoveredClients.end()
+                    discoveredClients.end()
                 );
             }
 
@@ -232,7 +233,7 @@ void Server::sendTable() {
 
     // Criar socket UDP
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("Erro ao criar socket");
+        // perror("Erro ao criar socket");
         exit(EXIT_FAILURE);
     }
 
@@ -247,14 +248,14 @@ void Server::sendTable() {
     // Configurar a opção SO_REUSEADDR
     int reuse = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-        perror("Erro ao configurar SO_REUSEADDR");
+        // perror("Erro ao configurar SO_REUSEADDR");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
     // Vincular o socket
     if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-        perror("Erro ao bind o socket");
+        // perror("Erro ao bind o socket");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
@@ -268,13 +269,13 @@ void Server::sendTable() {
         // Receber solicitação do cliente
         int n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE2, 0, (struct sockaddr *)&cliaddr, &len);
         if (n < 0) {
-            perror("Erro ao receber dados");
+            // perror("Erro ao receber dados");
             continue; // Continue ouvindo em caso de erro
         }
 
         // Verificar se os dados recebidos são maiores do que o buffer
         if (n > BUFFER_SIZE2) {
-            std::cerr << "Dados recebidos excedem o tamanho do buffer" << std::endl;
+            // std::cerr << "Dados recebidos excedem o tamanho do buffer" << std::endl;
             continue;
         }
 
@@ -290,7 +291,7 @@ void Server::sendTable() {
         // Enviar o vetor de StationData de volta ao cliente
         int sentBytes = sendto(sockfd, clients.data(), clients.size() * sizeof(StationData), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
         if (sentBytes < 0) {
-            perror("Erro ao enviar dados");
+            // perror("Erro ao enviar dados");
         } else {
             // std::cout << "Tabela enviada" << std::endl;
         }

@@ -20,9 +20,12 @@
 #define PORT_COORDINATOR 55005
 #define PORT_TABLE 55006
 #define PORT_ELECTION_RESPONSE 55007
+#define PORT_GENERATION 55008
+#define PORT_GENERATION_RESPONSE 55009
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
+#define BUFFER_SIZE 256
 #define BROADCAST_ADDR "255.255.255.255"
 #define PLACEHOLDER "@@@@"
 
@@ -44,13 +47,19 @@ extern int id;
 enum Request {
     SLEEP_STATUS,
     EXIT,
-    PARTICIPANT_DATA
+    PARTICIPANT_DATA,
+    DUPLICATE_MANAGER,
 };
 
 enum MessageType {
     ELECTION,
     OK,
     COORDINATOR
+};
+
+struct ManagerDuplicate {
+    int id;
+    int generation;
 };
 
 struct Message {
@@ -88,14 +97,6 @@ struct RequestData {
 class Station {
 public:
     // std::vector<std::string> stationIPs;
-    std::vector<StationData> discoveredClients;
-    StationData managerInfo = {
-        hostname: PLACEHOLDER,
-        ipAddress: PLACEHOLDER,
-        macAddress: PLACEHOLDER,
-        status: Status::ASLEEP
-    };
-
     int getHostname(char *buffer, size_t bufferSize, StationData &hostname);
     int getIpAddress(StationData &data);
     int getMacAddress(int sockfd, char *macAddress, size_t size);
@@ -106,13 +107,14 @@ public:
     void setSocketReuseOptions(int sockfd);
     void setSocketTimeout(int sockfd, int timeoutSec);
     void startElection();
-    void sendMessage(int sockfd, const StationData& client, const Message& message); 
-    bool waitForOkMessage();
+    void sendMessage(int port, int sockfd, const StationData& client, const Message& message); 
+    bool waitForOkMessage(int sockfd);
     void sendCoordinatorMessage();
-    static void listenForElectionMessages();
+    void listenForElectionMessages();
     void sendOkResponse(const sockaddr_in& senderAddr);
     int requestSleepStatus(const char *ipAddress, RequestData request, Status &status);
     void waitForSleepRequests();
+    void tempo();
     // static std::vector<std::string> stationIPs;
 };
 
@@ -126,6 +128,9 @@ public:
 
     //void receiveMessages();
     // StationData* requestParticipantData(const char *ipAddress);
+    void waitForGenerationNumber();
+    ManagerDuplicate waitForGenNumberResponse();
+    int requestGenerationNumber(const char *ipAddress);
     void sendTable();
 };
 
@@ -141,5 +146,7 @@ public:
 extern std::mutex mtx;
 extern std::condition_variable cv;
 extern std::atomic<bool> stopThreads;
+extern std::vector<StationData> discoveredClients;
+extern StationData managerInfo;
 
 #endif // STATIONS_H

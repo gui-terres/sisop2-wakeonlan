@@ -7,10 +7,19 @@ start_service() {
     docker-compose up -d "$1"
 }
 
-# Função para parar os contêineres
 stop_service() {
     docker-compose stop "$1"
 }
+
+# Função para parar os contêineres
+suspend_service() {
+    docker-compose pause "$1"
+}
+
+wake_service() {
+    docker-compose unpause "$1"
+}
+
 
 # Função para monitorar logs dos participantes
 monitor_logs() {
@@ -27,34 +36,36 @@ start_service participant1
 monitor_logs
 
 # Aguardar até que participant1 esteja pronto para se identificar como líder
-sleep 8
+sleep 10
 
 # Iniciar o participant2 (Estação B)
 start_service participant2
+sleep 5
 
 # # Iniciar o participant3 (Estação C)
 start_service participant3
-
-# Iniciar o participant4 (Estação D)
-start_service participant4
-
-# Aguardar até que participant4 tenha tempo para reconhecer o líder
 sleep 5
 
+# # Iniciar o participant4 (Estação D)
+start_service participant4
+sleep 5
+# Aguardar até que participant4 tenha tempo para reconhecer o líder
+
+sleep 5
 # Colocar participant1 para dormir (parar o líder original)
 stop_service participant1
 
 # Aguardar até que uma nova eleição seja realizada
-sleep 5
+sleep 25
 
 # Colocar o novo líder para dormir (parar a nova estação líder)
 # O novo líder deve ser o próximo da lista; se não tiver um critério específico, use participant2 como exemplo
-stop_service participant4
-
-# Aguardar até que uma nova eleição seja realizada
-sleep 10
+stop_service participant2
+sleep 25
 
 # Parar todos os contêineres
+
 docker-compose down
+
 
 echo "Contêineres gerenciados e parados com sucesso."
