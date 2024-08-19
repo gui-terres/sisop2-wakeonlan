@@ -225,7 +225,6 @@ void Station::startElection()
     int result = client.requestSleepStatus(managerInfo.ipAddress, req, status);
     tempo();
     int msgCount = 0;
-    cout << "AAAAAAAAAAAAAAAAA " << result << endl;
     // std::cout << "Request result for " << client.ipAddress << ": " << result << std::endl;
 
     if (result != 0)
@@ -234,12 +233,8 @@ void Station::startElection()
         {   
             tempo();
             int clientId = getLastFieldOfIP(client.ipAddress);
-            cout << client.hostname << endl;
-            cout << clientId << endl;
-            cout << id << endl;
             if (clientId > id)
             {   
-                cout << "enviando msg" << endl;
                 // Envia mensagem de eleição
                 int sockfd = createSocket(PORT_ELECTION); // Abra o socket uma vez
                 setSocketTimeout(sockfd, 1);
@@ -256,7 +251,7 @@ void Station::startElection()
                     return;
                 }
 
-                cout << "mandando eleição" << endl;
+                cout << "Mandando eleição..." << endl;
                 tempo();
                 if (sendto(sockfd, &electionMessage, sizeof(electionMessage), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0)
                 {
@@ -275,11 +270,11 @@ void Station::startElection()
         int sockfd = createSocket(PORT_ELECTION_RESPONSE);
         setSocketTimeout(sockfd, 10);
         while (!stopThreads.load() && msgCount > 0){
-            cout << "esperando pela resposta" << endl;
-            tempo();
+            // cout << "Esperando pela resposta..." << endl;
+            // tempo();
             receivedOk = waitForOkMessage(sockfd);  
-            tempo();
-            cout << "tenho minha resposta" << receivedOk << endl;
+            // tempo();
+            // cout << "Tenho minha resposta" << receivedOk << endl;
             if (receivedOk == true){
                 break;
             }
@@ -305,9 +300,9 @@ void Station::sendMessage(int port, int sockfd, const StationData &client, const
     addr.sin_port = htons(port); // Use a mesma porta para coordenação
     inet_pton(AF_INET, client.ipAddress, &addr.sin_addr);
 
-    cout << "TAMANHO: " << sizeof(message)  << " para " << client.ipAddress << endl;
-    cout << "TAMANHO: " << sizeof(message)  << " para " << client.ipAddress << endl;
-    cout << "TAMANHO: " << sizeof(message)  << " para " << client.ipAddress << endl;
+    // cout << "TAMANHO: " << sizeof(message)  << " para " << client.ipAddress << endl;
+    // cout << "TAMANHO: " << sizeof(message)  << " para " << client.ipAddress << endl;
+    // cout << "TAMANHO: " << sizeof(message)  << " para " << client.ipAddress << endl;
     sendto(sockfd, &message, sizeof(message), 0, (struct sockaddr *)&addr, sizeof(addr));
 }
 
@@ -329,22 +324,6 @@ bool Station::waitForOkMessage(int sockfd)
                 inet_ntop(AF_INET, &from.sin_addr, clientIP, sizeof(clientIP));
                 tempo();
                 std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
-                std::cout << "Resposta recebida de: " << clientIP << std::endl;
                 close(sockfd);
                 return true;
                 break;
@@ -352,14 +331,6 @@ bool Station::waitForOkMessage(int sockfd)
         }
         else
         {
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
-            perror("Erro no waitForOkMessage");
             perror("Erro no waitForOkMessage");
             close(sockfd);
             return false; // Continue trying to receive data
@@ -380,13 +351,13 @@ void Station::sendCoordinatorMessage()
     for (const StationData &client : discoveredClients)
     { // Use const StationData
         // Envia mensagem de coordenação
-        cout << "Mandando quem é o líder nessa porra (" << client.ipAddress << ")" << endl;
+        cout << "Mandando quem é o líder (" << client.ipAddress << ")..." << endl;
         Message coordinatorMessage = {MessageType::COORDINATOR, id};
         if(strcmp(managerInfo.ipAddress, client.ipAddress)){
             tempo();
             sendMessage(PORT_ELECTION_RESPONSE, sockfd, client, coordinatorMessage); // Chame a função com const
         } else {
-            cout << "hihiih sou eu ><" << endl;
+            // cout << "hihiih sou eu ><" << endl;
         }
         // std::this_thread::sleep_for(std::chrono::seconds(1)); // Evita loop rápido contínuo
     }
@@ -420,14 +391,6 @@ void Station::listenForElectionMessages()
 
         if (msg.type == MessageType::ELECTION)
         {   
-            tempo();
-            cout << "gremiooooooooooooooooo" << endl;
-            cout << "gremiooooooooooooooooo" << endl;
-            cout << "gremiooooooooooooooooo" << endl;
-            cout << "gremiooooooooooooooooo" << endl;
-            cout << "gremiooooooooooooooooo" << endl;
-            cout << "gremiooooooooooooooooo" << endl;
-
             int responseSockfd = createSocket(PORT_ELECTION_RESPONSE); // Abra o socket uma vez
             setSocketTimeout(responseSockfd, 1);
             Message answerMessage = {MessageType::OK, id};
@@ -505,14 +468,6 @@ void Station::waitForSleepRequests()
 int Station::requestSleepStatus(const char *ipAddress, RequestData request, Status &status)
 {
     int sockfd = createSocket(PORT_SLEEP);
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
-    cout << ipAddress << endl;
 
     // Definir tempo limite de 1 segundo para recebimento
     struct timeval tv;

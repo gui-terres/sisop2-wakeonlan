@@ -12,7 +12,7 @@ void Monitoring::requestParticipantsSleepStatus(Server &manager) {
     for (StationData &client : discoveredClients) { // Pode modificar
         Status status;
         if (!strcmp(client.ipAddress,pc.ipAddress)){
-            cout << "eu mesmo" << endl;
+            // cout << "eu mesmo" << endl;
             client.status = Status::AWAKEN;
             continue;
         }
@@ -36,7 +36,7 @@ void Monitoring::sendDowngradeToSleepyManagers(Server &manager) {
     while (!stopThreads.load()){
         for (StationData &client : discoveredClients) { // Pode modificar
             if (client.type == Type::SLEEPY_MANAGER){
-                cout << "mandando downgrade para " << client.ipAddress << endl;
+                // cout << "Mandando downgrade para " << client.ipAddress << "..." << endl;
                 manager.sendRequest(PORT_DOWNGRADE, client.ipAddress, req);
             }
         }

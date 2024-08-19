@@ -52,7 +52,7 @@ void upgradeClientToManager(Client &client) {
                 // Sinaliza para parar as outras threads
                 stopThreads.store(true);
                 cv.notify_all();
-                cout << "opioio" << endl;
+
                 // Aguarda o término das threads do cliente
                 // Threads do cliente devem verificar stopThreads
                 return;
@@ -68,7 +68,6 @@ void downgradeManagerToClient(Server &server) {
         {
             lock_guard<mutex> lock(mtx);
             if (type == Type::PARTICIPANT) {
-                cout << "checando????" << endl;
                 cout << "Gerente se tornando cliente..." << endl;
 
                 // Sinaliza para parar as outras threads

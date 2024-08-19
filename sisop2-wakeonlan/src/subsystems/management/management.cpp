@@ -33,6 +33,8 @@ void Management::tempo(){
 void Management::displayClient(Client &client) {
     while (!stopThreads.load()){
         //checar timeout aqui        
+        clearScreen();
+        drawHeader();
         if (!strcmp(managerInfo.ipAddress, PLACEHOLDER) || !strcmp(managerInfo.ipAddress, "")) {            
             cout << "Nenhum líder na rede" << endl;
         } else{
@@ -47,7 +49,6 @@ void Management::displayClient(Client &client) {
           cout << endl << "Sem outros clientes no momento!" << endl << endl << endl;
         tempo();
         cout << endl;
-        // clearScreen();
         this_thread::sleep_for(chrono::seconds(1));
     }
 }

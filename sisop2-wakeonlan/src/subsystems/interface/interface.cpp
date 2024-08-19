@@ -63,8 +63,8 @@ void drawHeader() {
 }    
 
 void drawInterface(){
-    // clearScreen(); 
-    // drawHeader();
+    clearScreen(); 
+    drawHeader();
 }
 
 // Função para configurar o terminal para ler uma tecla sem esperar por '\n'

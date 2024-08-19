@@ -69,10 +69,10 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
                 });
 
             if (clientIt == discoveredClients.end()) {
-                std::cout << "Item não encontrado, adicionando..." << std::endl;
+                // std::cout << "Item não encontrado, adicionando..." << std::endl;
                 discoveredClients.push_back(receivedData);
             } else {
-                std::cout << "Item já existe na lista, atualizando..." << std::endl;
+                // std::cout << "Item já existe na lista, atualizando..." << std::endl;
                 size_t index = std::distance(discoveredClients.begin(), clientIt);
                 std::strncpy(discoveredClients[index].hostname, receivedData.hostname, sizeof(discoveredClients[index].hostname) - 1);
                 discoveredClients[index].hostname[sizeof(discoveredClients[index].hostname) - 1] = '\0'; // Garantir a terminação null
@@ -365,10 +365,6 @@ void Server::listenOnPort(int port) {
     while (!stopThreads.load()) {
         RequestData request;
         socklen_t client_len = sizeof(client_addr);
-        cout << "esout ouvindoooooooooooooooooooooooooooooooooooooooooooooo" << endl;
-        cout << "esout ouvindoooooooooooooooooooooooooooooooooooooooooo" << endl;
-        cout << "esout ouvindooooooooooooooooooooooooooooooooooooo" << endl;
-        cout << "esout ouvindoooooooooooooooooooooooooooooo" << endl;
         // Escuta por requisições
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&client_addr, &client_len);
         if (bytesReceived < 0) {
