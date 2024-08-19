@@ -52,6 +52,25 @@ void Management::displayClient(Client &client) {
     }
 }
 
+#include <cstring>  // Necessário para strcmp
+
+bool Management::updateClientTypeByIP(const char* ipAddress, Type newType) {
+    // Procura o cliente no vetor discoveredClients pelo endereço IP
+    for (auto& client : discoveredClients) {
+        if (strcmp(client.ipAddress, ipAddress) == 0) {
+            {
+                std::lock_guard<std::mutex> lock(mtx);          
+                cout << "Alterando o tipo de " << ipAddress << " para " << newType << endl;
+                client.type = newType;
+            }
+            // Atualiza o tipo do cliente
+            return true;  // Retorna true se o cliente foi encontrado e atualizado
+        }
+    }
+    return false;  // Retorna false se o cliente não foi encontrado
+}
+
+
 void Management::checkAndElectClient(Client &client) {
     // while (!stopThreads.load()) {
     //     // Check if there is no leader in the network

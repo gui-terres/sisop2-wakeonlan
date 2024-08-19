@@ -27,6 +27,23 @@ void Monitoring::requestParticipantsSleepStatus(Server &manager) {
     }
 }
 
+void Monitoring::sendDowngradeToSleepyManagers(Server &manager) {
+    RequestData req;
+    req.request = Request::DOWNGRADE;
+    StationData pc;
+    manager.getIpAddress(pc);
+
+    while (!stopThreads.load()){
+        for (StationData &client : discoveredClients) { // Pode modificar
+            if (client.type == Type::SLEEPY_MANAGER){
+                cout << "mandando downgrade para " << client.ipAddress << endl;
+                manager.sendRequest(PORT_DOWNGRADE, client.ipAddress, req);
+            }
+        }
+        this_thread::sleep_for(chrono::milliseconds(200));
+    }
+}
+
 void Monitoring::waitForSleepStatusRequest(Client &client) {
     client.waitForSleepRequests();
 }

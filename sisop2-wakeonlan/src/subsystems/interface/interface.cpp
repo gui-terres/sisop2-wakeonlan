@@ -85,21 +85,50 @@ void restoreTermSettings() {
 
 void drawTableHeader() {
     std::cout << std::endl;
-    std::cout << " ___________________________________________________________" << std::endl;
-    std::cout << "|              |                   |               |        |" << std::endl;
-    std::cout << "|   Hostname   |   Endereço MAC    |  Endereço IP  | Status |" << std::endl;
-    std::cout << "|______________|___________________|_______________|________|" << std::endl;
+    std::cout << " _________________________________________________________________________________" << std::endl;
+    std::cout << "|              |                   |               |        |                    |" << std::endl;
+    std::cout << "|   Hostname   |   Endereço MAC    |  Endereço IP  | Status |       Tipo         |" << std::endl;
+    std::cout << "|______________|___________________|_______________|________|____________________|" << std::endl;
+}
+
+std::string typeToString(Type type) {
+    switch (type) {
+        case PARTICIPANT:    return "PARTICIPANT";
+        case MANAGER:        return "MANAGER";
+        case SLEEPY_MANAGER: return "SLEEPY_MANAGER";
+        default:             return "UNKNOWN";
+    }
 }
 
 void drawTableData(const std::vector<StationData>& discoveredClients) {
-    for (const auto &client : discoveredClients) {
-        std::cout << "|              |                   |               |        |" << std::endl;
-        std::cout << "| " << std::setw(12) << client.hostname
-                 << " | " << std::setw(17) << client.macAddress
-                 << " | " << std::setw(13) << client.ipAddress
-                 << " | " << std::setw(6) << client.status
-                 << " |"  << std::endl;
-        std::cout << "|______________|___________________|_______________|________|" << std::endl;
+    bool managerPrinted = false;
+
+    for (const auto& client : discoveredClients) {
+        if (client.type == Type::MANAGER && !managerPrinted) {
+            std::cout << "|              |                   |               |        |                    |" << std::endl;
+            std::cout << "| " << std::setw(12) << client.hostname
+                     << " | " << std::setw(17) << client.macAddress
+                     << " | " << std::setw(13) << client.ipAddress
+                     << " | " << std::setw(6) << (client.status == Status::AWAKEN ? "AWAKEN" : "ASLEEP")
+                     << " | " << std::setw(18) << typeToString(client.type)
+                     << " |"  << std::endl;
+            std::cout << "|______________|___________________|_______________|________|____________________|" << std::endl;
+            managerPrinted = true;
+        }
+    }
+
+    // Imprime os demais clientes
+    for (const auto& client : discoveredClients) {
+        if (client.type != Type::MANAGER) {
+            std::cout << "|              |                   |               |        |                    |" << std::endl;
+            std::cout << "| " << std::setw(12) << client.hostname
+                     << " | " << std::setw(17) << client.macAddress
+                     << " | " << std::setw(13) << client.ipAddress
+                     << " | " << std::setw(6) << (client.status == Status::AWAKEN ? "AWAKEN" : "ASLEEP")
+                     << " | " << std::setw(18) << typeToString(client.type)
+                     << " |"  << std::endl;
+            std::cout << "|______________|___________________|_______________|________|____________________|" << std::endl;
+        }
     }
 }
 

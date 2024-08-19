@@ -28,7 +28,6 @@ StationData managerInfo = {
     hostname: PLACEHOLDER,
     ipAddress: PLACEHOLDER,
     macAddress: PLACEHOLDER,
-    id: 0,
     type: Type::MANAGER,
     status: Status::ASLEEP
 };
@@ -69,6 +68,7 @@ void downgradeManagerToClient(Server &server) {
         {
             lock_guard<mutex> lock(mtx);
             if (type == Type::PARTICIPANT) {
+                cout << "checando????" << endl;
                 cout << "Gerente se tornando cliente..." << endl;
 
                 // Sinaliza para parar as outras threads
@@ -88,32 +88,40 @@ void downgradeManagerToClient(Server &server) {
 void runManagerMode(bool isDocker = false) {
     cout << "Manager mode" << (isDocker ? " [Docker]" : "") << endl;
     type = Type::MANAGER;
+
     StationData pcData;
     stopThreads.store(false);
-    
+    int sockfd = station.createSocket();  
+    char buffer[BUFFER_SIZE];
+    station.getHostname(buffer, BUFFER_SIZE, pcData);
+    station.getIpAddress(pcData);
+    station.getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
+    pcData.status = Status::AWAKEN;
+    pcData.type = Type::MANAGER;
+    close(sockfd);
+
     vector<thread> threads;
 
     if (discoveredClients.empty()){
         {
             std::lock_guard<std::mutex> lock(mtx);
-            int sockfd = station.createSocket();
-            
-            char buffer[BUFFER_SIZE];
-            station.getHostname(buffer, BUFFER_SIZE, pcData);
-            station.getIpAddress(pcData);
-            station.getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
-            pcData.status = Status::AWAKEN;
-
             discoveredClients.push_back(pcData);            
         }
     }
 
     server.sendCoordinatorMessage();
 
+    Management::updateClientTypeByIP(managerInfo.ipAddress, Type::SLEEPY_MANAGER);
+    Management::updateClientTypeByIP(pcData.ipAddress, Type::MANAGER);
+
+    managerInfo = pcData;
+
+    threads.push_back(thread(&Server::listenOnPort, &server, PORT_DOWNGRADE)); 
     threads.push_back(thread(Discovery::discoverParticipants, ref(server)));
     threads.push_back(thread(&Server::sendManagerInfo, &server));
     threads.push_back(thread(&Station::waitForSleepRequests, &station));
     threads.push_back(thread(Management::displayServer, ref(server)));
+    threads.push_back(thread(Monitoring::sendDowngradeToSleepyManagers, ref(server)));
     threads.push_back(thread(&Server::waitForRequests, &server));
     threads.push_back(thread(read_input, ref(client), ref(server)));
     threads.push_back(thread(isCTRLcT, ref(client)));
@@ -131,19 +139,19 @@ void runManagerMode(bool isDocker = false) {
         cout << "Transição para o modo de cliente..." << endl;
         
         // Aguarda todas as threads terminarem
-        for (auto &t : threads) {
-            if (t.joinable()) {
-                t.join();
-            }
+        for (size_t i = 0; i < threads.size(); ++i) {
+            cout << "Joining thread " << i << " with ID: " << threads[i].get_id() << endl;
+            threads[i].join();
         }
-
+        cout << "All threads have finished." << endl;
         // Inicia o modo de gerente
         runClientMode(0,isDocker);
     } else {
         // Aguarda todas as threads terminarem antes de finalizar o modo cliente
-        for (auto &t : threads) {
-            if (t.joinable()) {
-                t.join();
+        for (size_t i = 0; i < threads.size(); ++i) {
+            cout << "Joining thread " << i << " with ID: " << threads[i].get_id() << endl;
+            if (threads[i].joinable()) {
+                threads[i].join();
             }
         }
     }
@@ -153,6 +161,8 @@ void runClientMode(int argc, bool isDocker = false) {
     if (!isDocker) {
         drawInterface();
     }
+
+    stopThreads.store(false);
 
     cout << "Client mode" << (isDocker ? " [Docker]" : "") << endl;
     type = Type::PARTICIPANT;

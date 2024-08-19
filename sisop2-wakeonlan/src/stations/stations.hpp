@@ -20,8 +20,7 @@
 #define PORT_COORDINATOR 55005
 #define PORT_TABLE 55006
 #define PORT_ELECTION_RESPONSE 55007
-#define PORT_GENERATION 55008
-#define PORT_GENERATION_RESPONSE 55009
+#define PORT_DOWNGRADE 55008
 #define MAX_HOSTNAME_SIZE 250
 #define IP_ADDRESS_SIZE 16
 #define MAC_ADDRESS_SIZE 18
@@ -38,7 +37,8 @@ enum Status {
 
 enum Type {
     PARTICIPANT,
-    MANAGER
+    MANAGER,
+    SLEEPY_MANAGER
 };
 
 extern Type type;
@@ -48,7 +48,7 @@ enum Request {
     SLEEP_STATUS,
     EXIT,
     PARTICIPANT_DATA,
-    DUPLICATE_MANAGER,
+    DOWNGRADE,
 };
 
 enum MessageType {
@@ -71,7 +71,6 @@ struct StationData {
     char hostname[MAX_HOSTNAME_SIZE];
     char ipAddress[IP_ADDRESS_SIZE];
     char macAddress[MAC_ADDRESS_SIZE];
-    int id;
     Type type;
     Status status;
 
@@ -86,9 +85,13 @@ struct StationData {
         if (std::strcmp(hostname, other.hostname) != 0) {
             return false;
         }
+        if (type != other.type) {
+            return false;
+        }
         return true;
     }    
 };
+
 
 struct RequestData {
     Request request;
@@ -125,13 +128,11 @@ public:
     int sendWoLPacket(StationData &client);
     void waitForRequests();
     int sendManagerInfo();
-
+    void listenOnPort(int port);
     //void receiveMessages();
     // StationData* requestParticipantData(const char *ipAddress);
-    void waitForGenerationNumber();
-    ManagerDuplicate waitForGenNumberResponse();
-    int requestGenerationNumber(const char *ipAddress);
     void sendTable();
+    int sendRequest(int port, const char *ipAddress, RequestData request);
 };
 
 class Client : public Station {

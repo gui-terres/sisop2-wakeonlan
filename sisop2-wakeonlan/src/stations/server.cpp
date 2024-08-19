@@ -38,7 +38,8 @@ vector<StationData> discoveredClients;
 int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     int sockfd = createSocket(PORT_SOCKET);
     setSocketBroadcastOptions(sockfd);
-    
+    setSocketTimeout(sockfd, 3);
+
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
 
@@ -62,23 +63,24 @@ int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
         {
             std::lock_guard<std::mutex> lock(mtx);
 
-            // Verifica se o item já está na lista
-            auto client = std::find(discoveredClients.begin(), discoveredClients.end(), receivedData);
+            auto clientIt = std::find_if(discoveredClients.begin(), discoveredClients.end(), 
+                [&receivedData](const StationData& clientData) {
+                    return std::strcmp(clientData.ipAddress, receivedData.ipAddress) == 0;
+                });
 
-            // // Debug: Imprime o status da lista
-            // std::cout << "Verificando se o item já está na lista..." << std::endl;
-            // for (const auto& c : discoveredClients) {
-            //     std::cout << "Na lista: " << c.ipAddress << std::endl;
-            // }
-
-            // Se não encontrar o item, adiciona
-            if (client == discoveredClients.end()) {
-                // std::cout << "Item não encontrado, adicionando..." << std::endl;
+            if (clientIt == discoveredClients.end()) {
+                std::cout << "Item não encontrado, adicionando..." << std::endl;
                 discoveredClients.push_back(receivedData);
             } else {
-                // std::cout << "Item já existe na lista." << std::endl;
+                std::cout << "Item já existe na lista, atualizando..." << std::endl;
+                size_t index = std::distance(discoveredClients.begin(), clientIt);
+                std::strncpy(discoveredClients[index].hostname, receivedData.hostname, sizeof(discoveredClients[index].hostname) - 1);
+                discoveredClients[index].hostname[sizeof(discoveredClients[index].hostname) - 1] = '\0'; // Garantir a terminação null
+                discoveredClients[index].type = receivedData.type;
+                discoveredClients[index].status = receivedData.status;
             }
         }
+
     }
 
     close(sockfd);
@@ -183,6 +185,7 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client) {
 void Server::waitForRequests() {
     int sockfd = createSocket(PORT_EXIT);
     // Server::setSocketTimeout(sockfd,1);
+    setSocketTimeout(sockfd, 3);
 
     while (!stopThreads.load()) {
         RequestData request;
@@ -263,6 +266,8 @@ void Server::sendTable() {
     socklen_t len;
     char buffer[BUFFER_SIZE2];
 
+    setSocketTimeout(sockfd, 3);
+
     while (!stopThreads.load()) {
         len = sizeof(cliaddr);
 
@@ -295,6 +300,89 @@ void Server::sendTable() {
         } else {
             // std::cout << "Tabela enviada" << std::endl;
         }
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+
+    close(sockfd);
+}
+
+int Server::sendRequest(int port, const char *ipAddress, RequestData request) {
+    int sockfd = createSocket(port);
+    if (sockfd < 0) {
+        cerr << "ERROR creating socket." << endl;
+        return -1;
+    }
+
+    // Configurar o endereço do destinatário
+    struct sockaddr_in recipient_addr;
+    memset(&recipient_addr, 0, sizeof(recipient_addr));
+    recipient_addr.sin_family = AF_INET;
+    recipient_addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
+        cerr << "ERROR invalid address/ Address not supported." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+retry_send:
+    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+        perror("ERROR sending request");
+        if (errno == ENETUNREACH) {
+            goto retry_send;
+        }
+        close(sockfd);
+        return -1;
+    }
+
+    close(sockfd);
+    return 0; // Retorna 0 indicando sucesso
+}
+
+void handleDowngradeRequest(const struct sockaddr_in &client_addr) {
+    // Ação a ser executada quando a requisição Request::DOWNGRADE chegar
+    std::cout << "Received DOWNGRADE request from " << inet_ntoa(client_addr.sin_addr) << std::endl;
+    type = Type::PARTICIPANT;
+
+    // Aqui você pode definir a ação que deve ser executada
+    // Por exemplo, você pode enviar uma resposta ao cliente ou modificar algum estado no servidor
+}
+
+
+void Server::listenOnPort(int port) {
+    int sockfd = createSocket(port);
+    if (sockfd < 0) {
+        cerr << "ERROR creating socket." << endl;
+        return;
+    }
+    setSocketTimeout(sockfd, 3);
+
+    struct sockaddr_in server_addr, client_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(port);
+
+    while (!stopThreads.load()) {
+        RequestData request;
+        socklen_t client_len = sizeof(client_addr);
+        cout << "esout ouvindoooooooooooooooooooooooooooooooooooooooooooooo" << endl;
+        cout << "esout ouvindoooooooooooooooooooooooooooooooooooooooooo" << endl;
+        cout << "esout ouvindooooooooooooooooooooooooooooooooooooo" << endl;
+        cout << "esout ouvindoooooooooooooooooooooooooooooo" << endl;
+        // Escuta por requisições
+        ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&client_addr, &client_len);
+        if (bytesReceived < 0) {
+            perror("ERROR receiving data.");
+            continue;
+        }
+
+        // Verifica se a requisição é do tipo Request::DOWNGRADE
+        if (request.request == Request::DOWNGRADE) {
+            // Executa a ação definida para a requisição Request::DOWNGRADE
+            handleDowngradeRequest(client_addr);
+        }
+        this_thread::sleep_for(chrono::milliseconds(100));
+        // Aqui você pode adicionar mais verificações para outros tipos de requisições
     }
 
     close(sockfd);
