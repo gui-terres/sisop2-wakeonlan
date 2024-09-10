@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/aluno/Documents/sisop2-wake/sisop2-wakeonlan/sisop2-wakeonlan/src/stations",
-      "program": "/home/aluno/Documents/sisop2-wake/sisop2-wakeonlan/sisop2-wakeonlan/src/stations/build/Debug/outDebug",
+      "cwd": "/home/aluno/Documents/sisop2-wakeonlan/sisop2-wakeonlan/src/stations",
+      "program": "/home/aluno/Documents/sisop2-wakeonlan/sisop2-wakeonlan/src/stations/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

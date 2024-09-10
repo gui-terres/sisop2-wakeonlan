@@ -21,3 +21,6 @@ sleep 10
 docker-compose start participant1
 
 sleep 10
+
+# Parar todos os contêineres
+docker-compose down

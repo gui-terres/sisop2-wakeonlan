@@ -12,6 +12,7 @@ public:
     static void requestParticipantsSleepStatus(Server &manager);
     static void waitForSleepStatusRequest(Client &client);
     static void sendWoLPacket(Server &server, string hostname);
+    static void sendDowngradeToSleepyManagers(Server &manager);
 };
 
 #endif // MONITORING_H

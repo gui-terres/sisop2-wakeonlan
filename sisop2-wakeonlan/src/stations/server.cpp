@@ -13,141 +13,76 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <chrono>  // Para std::this_thread::sleep_for
+#include <thread>
 
 #include "stations.hpp"
 
-#define BUFFER_SIZE 256
+// #define BUFFER_SIZE2 1024
 
 using namespace std;
 
 // Mutex para sincronização de acesso à lista
 std::mutex mtx;
+vector<StationData> discoveredClients;
+
+// void Server::updateStationIPs() {
+//     std::lock_guard<std::mutex> lock(mtx);
+//     stationIPs.clear();  // Clear the previous list
+
+//     for (const auto& client : discoveredClients) {
+//         stationIPs.push_back(std::string(client.ipAddress));
+//     }
+// }
 
 int Server::collectParticipants(const char* addr = BROADCAST_ADDR) {
     int sockfd = createSocket(PORT_SOCKET);
     setSocketBroadcastOptions(sockfd);
-
-    // if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-    //     cerr << "ERROR opening socket." << endl;
-    //     return 1;
-    // }
-
-    // // Permitir pacotes de broadcast
-    // int broadcastPermission = 1;
-    // if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcastPermission, sizeof(broadcastPermission)) < 0) {
-    //     cerr << "ERROR setting broadcast permission." << endl;
-    //     return 1;
-    // }
-
-    // struct sockaddr_in participant_addr;
-    // participant_addr.sin_family = AF_INET;
-    // participant_addr.sin_port = htons(PORT_SOCKET);
-    // participant_addr.sin_addr.s_addr = inet_addr(addr);  // Bind ao endereço local
-    // bzero(&(participant_addr.sin_zero), 8);
-
-    // if (bind(sockfd, (struct sockaddr *)&participant_addr, sizeof(struct sockaddr)) < 0) {
-    //     cerr << "ERROR on binding socket." << endl;
-    //     return 1;  
-    // }
+    setSocketTimeout(sockfd, 3);
 
     sockaddr_in cli_addr;
     socklen_t clilen = sizeof(struct sockaddr_in);
 
-    while (true) {
+    while (!stopThreads.load()) {
         StationData receivedData;
         memset(&receivedData, 0, sizeof(receivedData));
 
+        
         ssize_t bytesReceived = recvfrom(sockfd, &receivedData, sizeof(receivedData), 0, (struct sockaddr *)&cli_addr, &clilen);
         if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom." << endl;
-            break;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // Timeout or non-blocking mode, just continue
+                continue;
+            } else {
+                // Other errors, print error and break the loop
+                // cerr << "ERROR on recvfrom in collectParticipants." << endl;
+                break;
+            }
         }
 
         {
             std::lock_guard<std::mutex> lock(mtx);
 
-            // Verifica se o item já está na lista
-            auto client = std::find(discoveredClients.begin(), discoveredClients.end(), receivedData);
+            auto clientIt = std::find_if(discoveredClients.begin(), discoveredClients.end(), 
+                [&receivedData](const StationData& clientData) {
+                    return std::strcmp(clientData.ipAddress, receivedData.ipAddress) == 0;
+                });
 
-            // // Debug: Imprime o status da lista
-            // std::cout << "Verificando se o item já está na lista..." << std::endl;
-            // for (const auto& c : discoveredClients) {
-            //     std::cout << "Na lista: " << c.ipAddress << std::endl;
-            // }
-
-            // Se não encontrar o item, adiciona
-            if (client == discoveredClients.end()) {
+            if (clientIt == discoveredClients.end()) {
                 // std::cout << "Item não encontrado, adicionando..." << std::endl;
                 discoveredClients.push_back(receivedData);
             } else {
-                // std::cout << "Item já existe na lista." << std::endl;
+                // std::cout << "Item já existe na lista, atualizando..." << std::endl;
+                size_t index = std::distance(discoveredClients.begin(), clientIt);
+                std::strncpy(discoveredClients[index].hostname, receivedData.hostname, sizeof(discoveredClients[index].hostname) - 1);
+                discoveredClients[index].hostname[sizeof(discoveredClients[index].hostname) - 1] = '\0'; // Garantir a terminação null
+                discoveredClients[index].type = receivedData.type;
+                discoveredClients[index].status = receivedData.status;
             }
         }
 
-        // char buffer[BUFFER_SIZE];
-        // StationData managerInfo;
-        // memset(&managerInfo, 0, sizeof(managerInfo));
-
-        // getHostname(buffer, BUFFER_SIZE, managerInfo);
-        // getIpAddress(managerInfo);
-        // getMacAddress(sockfd, managerInfo.macAddress, MAC_ADDRESS_SIZE);
-
-        // if (sendto(sockfd, &managerInfo, sizeof(managerInfo), 0, (struct sockaddr *)&cli_addr, sizeof(struct sockaddr)) < 0) {
-        //     cerr << "ERROR on sendto." << endl;
-        // }
     }
 
-    close(sockfd);
-    return 0;
-}
-
-int Server::requestSleepStatus(const char *ipAddress, RequestData request, Status &status) {
-    int sockfd = createSocket(PORT_SLEEP);
-
-    // Definir tempo limite de 1 segundo para recebimento
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
-        cerr << "ERROR setting socket timeout." << endl;
-        close(sockfd);
-        return -1;
-    }
-
-    struct sockaddr_in recipient_addr;
-    memset(&recipient_addr, 0, sizeof(recipient_addr));
-    recipient_addr.sin_family = AF_INET;
-    recipient_addr.sin_port = htons(PORT_SLEEP);
-    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
-        cerr << "ERROR invalid address/ Address not supported." << endl;
-        close(sockfd);
-        return -1;
-    }
-
-    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
-        cerr << "ERROR sending request." << endl;
-        close(sockfd);
-        return -1;
-    }
-
-    // Receber resposta
-    struct sockaddr_in from;
-    socklen_t fromlen = sizeof(from);
-    Status responseStatus = Status::AWAKEN;
-
-    ssize_t bytesReceived = recvfrom(sockfd, &responseStatus, sizeof(responseStatus), 0, (struct sockaddr *)&from, &fromlen);
-    if (bytesReceived < 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            cerr << "ERROR: Timeout receiving response." << endl;
-        } else {
-            cerr << "ERROR receiving response." << endl;
-        }
-        status = Status::ASLEEP;
-        close(sockfd);
-        return 0;
-    }
-
-    status = responseStatus;
     close(sockfd);
     return 0;
 }
@@ -171,13 +106,18 @@ int Server::sendManagerInfo() {
     getMacAddress(sockfd, pcData.macAddress, MAC_ADDRESS_SIZE);
     pcData.status = Status::AWAKEN;
 
-    // cout << "Manager Info" << endl;
-    // cout << "Hostname: " << pcData.hostname << endl;
-    // cout << "IP Address: " << pcData.ipAddress << endl;
-    // cout << "Mac Address: " << pcData.macAddress << endl;
-
-    if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0)
-        cerr << "ERROR on sendto." << endl;
+    cout << "Manager Info" << endl;
+    cout << "Hostname: " << pcData.hostname << endl;
+    cout << "IP Address: " << pcData.ipAddress << endl;
+    cout << "Mac Address: " << pcData.macAddress << endl;
+    while (!stopThreads.load()) {
+        if (sendto(sockfd, &pcData, sizeof(pcData), 0, (const struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0){
+            perror("ERROR on sendto sendManagerInfo");
+            break;
+        }
+        // cout << "mandei info" << endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     close(sockfd);
     return 0;
@@ -193,7 +133,7 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client);
 int Server::sendWoLPacket(StationData &client) {
     int sockfd;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        cerr << "ERROR opening socket." << endl;
+        // cerr << "ERROR opening socket." << endl;
         return -1;
     }
 
@@ -202,7 +142,7 @@ int Server::sendWoLPacket(StationData &client) {
     recipient_addr.sin_family = AF_INET;
     recipient_addr.sin_port = htons(9);
     if (inet_pton(AF_INET, client.ipAddress, &recipient_addr.sin_addr) <= 0) {
-        cerr << "ERROR invalid address/ Address not supported." << endl;
+        // cerr << "ERROR invalid address/ Address not supported." << endl;
         close(sockfd);
         return -1;
     }
@@ -210,7 +150,7 @@ int Server::sendWoLPacket(StationData &client) {
     std::vector<uint8_t> packet;
     assembleWoLPacket(packet, client);
 
-    if (sendto(sockfd, packet.data(), packet.size(), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+    if (sendto(sockfd, packet.data(), packet.size(), MSG_CONFIRM, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
         close(sockfd);
         return -1;
     }
@@ -244,29 +184,40 @@ void assembleWoLPacket(std::vector<uint8_t> &packet, StationData &client) {
 
 void Server::waitForRequests() {
     int sockfd = createSocket(PORT_EXIT);
+    // Server::setSocketTimeout(sockfd,1);
+    setSocketTimeout(sockfd, 3);
 
-    while (true) {
+    while (!stopThreads.load()) {
         RequestData request;
         struct sockaddr_in from;
         socklen_t fromlen = sizeof(from);
+        // cout << "entrei aqui" << endl;
+        
         ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&from, &fromlen);
-        if (bytesReceived < 0) {
-            cerr << "ERROR on recvfrom." << endl;
+
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            // cerr << "ERROR: Timeout receiving Wresponse." << endl;
+            continue;
+        } else if (bytesReceived < 0) {
+            // cerr << "ERROR receiving response." << endl;
             continue;
         }
 
+        // cout << "thcaaaaaaaaaau" << endl;
+
         if (request.request == Request::EXIT) {
+            // cout << "oiiiiiiii" << endl;
             char ipAddress[INET_ADDRSTRLEN];
             if (inet_ntop(AF_INET, &from.sin_addr, ipAddress, sizeof(ipAddress)) == nullptr) {
-                cerr << "ERROR converting address." << endl;
+                // cerr << "ERROR converting address." << endl;
                 close(sockfd);                
             } else {
-                this->discoveredClients.erase(
-                    std::remove_if(this->discoveredClients.begin(), this->discoveredClients.end(),
+                discoveredClients.erase(
+                    std::remove_if(discoveredClients.begin(), discoveredClients.end(),
                                 [ipAddress](const StationData& data) {
                                     return strcmp(data.ipAddress, ipAddress) == 0;
                                 }),
-                    this->discoveredClients.end()
+                    discoveredClients.end()
                 );
             }
 
@@ -276,64 +227,159 @@ void Server::waitForRequests() {
     close(sockfd);
 }
 
-// StationData* Server::requestParticipantData(const char *ipAddress) {
-//     int sockfd;
-//     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-//         cerr << "ERROR opening socket." << endl;
-//         return nullptr;
-//     }
+#define BUFFER_SIZE2 65536  // Por exemplo, 64 KB
 
-//     // Definir tempo limite de 5 segundos para recebimento
-//     struct timeval tv;
-//     tv.tv_sec = 5;
-//     tv.tv_usec = 0;
-//     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv)) < 0) {
-//         cerr << "ERROR setting socket timeout." << endl;
-//         close(sockfd);
-//         return nullptr;
-//     }
 
-//     struct sockaddr_in recipient_addr;
-//     memset(&recipient_addr, 0, sizeof(recipient_addr));
-//     recipient_addr.sin_family = AF_INET;
-//     recipient_addr.sin_port = htons(PORT_DATA);
-//     if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
-//         cerr << "ERROR invalid address/ Address not supported." << endl;
-//         close(sockfd);
-//         return nullptr;
-//     }
+void Server::sendTable() {
+    int sockfd;
+    struct sockaddr_in servaddr, cliaddr;
 
-//     RequestData req;
-//     req.request = Request::PARTICIPANT_DATA;
+    // Criar socket UDP
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        // perror("Erro ao criar socket");
+        exit(EXIT_FAILURE);
+    }
 
-//     if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
-//         cerr << "ERROR sending request." << endl;
-//         close(sockfd);
-//         return nullptr;
-//     }
+    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&cliaddr, 0, sizeof(cliaddr));
 
-//     cout << "Message sent to: " << ipAddress << endl;
+    // Configurar informações do servidor
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT_TABLE);
 
-//     // Receber resposta
-//     StationData* receivedData = new StationData();
-//     memset(receivedData, 0, sizeof(StationData));
+    // Configurar a opção SO_REUSEADDR
+    int reuse = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        // perror("Erro ao configurar SO_REUSEADDR");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-//     sockaddr_in cli_addr;
-//     socklen_t clilen = sizeof(struct sockaddr_in);
+    // Vincular o socket
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        // perror("Erro ao bind o socket");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
 
-//     ssize_t bytesReceived = recvfrom(sockfd, receivedData, sizeof(StationData), 0, (struct sockaddr *)&cli_addr, &clilen);
-//     if (bytesReceived < 0) {
-//         cerr << "ERROR on recvfrom." << endl;
-//         close(sockfd);
-//         delete receivedData;
-//         return nullptr;
-//     }
+    socklen_t len;
+    char buffer[BUFFER_SIZE2];
 
-//     cout << "Hostname: " << receivedData->hostname << endl;
-//     cout << "IP Address: " << receivedData->ipAddress << endl;
-//     cout << "MAC Address: " << receivedData->macAddress << endl;
-//     cout << "Status: " << receivedData->status << endl;
+    setSocketTimeout(sockfd, 3);
 
-//     close(sockfd);
-//     return receivedData;
-// }
+    while (!stopThreads.load()) {
+        len = sizeof(cliaddr);
+
+        // Receber solicitação do cliente
+        int n = recvfrom(sockfd, (char *)buffer, BUFFER_SIZE2, 0, (struct sockaddr *)&cliaddr, &len);
+        if (n < 0) {
+            // perror("Erro ao receber dados");
+            continue; // Continue ouvindo em caso de erro
+        }
+
+        // Verificar se os dados recebidos são maiores do que o buffer
+        if (n > BUFFER_SIZE2) {
+            // std::cerr << "Dados recebidos excedem o tamanho do buffer" << std::endl;
+            continue;
+        }
+
+        char clientIP[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &cliaddr.sin_addr, clientIP, sizeof(clientIP));
+        // std::cout << "Solicitação recebida de: " << clientIP << std::endl;
+
+        // std::cout << "Pediu tabela" << std::endl;
+
+        // Pegar o vetor de discoveredClients
+        std::vector<StationData> clients = this->getDiscoveredClients();
+
+        // Enviar o vetor de StationData de volta ao cliente
+        int sentBytes = sendto(sockfd, clients.data(), clients.size() * sizeof(StationData), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+        if (sentBytes < 0) {
+            // perror("Erro ao enviar dados");
+        } else {
+            // std::cout << "Tabela enviada" << std::endl;
+        }
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+
+    close(sockfd);
+}
+
+int Server::sendRequest(int port, const char *ipAddress, RequestData request) {
+    int sockfd = createSocket(port);
+    if (sockfd < 0) {
+        cerr << "ERROR creating socket." << endl;
+        return -1;
+    }
+
+    // Configurar o endereço do destinatário
+    struct sockaddr_in recipient_addr;
+    memset(&recipient_addr, 0, sizeof(recipient_addr));
+    recipient_addr.sin_family = AF_INET;
+    recipient_addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, ipAddress, &recipient_addr.sin_addr) <= 0) {
+        cerr << "ERROR invalid address/ Address not supported." << endl;
+        close(sockfd);
+        return -1;
+    }
+
+retry_send:
+    if (sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&recipient_addr, sizeof(recipient_addr)) < 0) {
+        perror("ERROR sending request");
+        if (errno == ENETUNREACH) {
+            goto retry_send;
+        }
+        close(sockfd);
+        return -1;
+    }
+
+    close(sockfd);
+    return 0; // Retorna 0 indicando sucesso
+}
+
+void handleDowngradeRequest(const struct sockaddr_in &client_addr) {
+    // Ação a ser executada quando a requisição Request::DOWNGRADE chegar
+    std::cout << "Received DOWNGRADE request from " << inet_ntoa(client_addr.sin_addr) << std::endl;
+    type = Type::PARTICIPANT;
+
+    // Aqui você pode definir a ação que deve ser executada
+    // Por exemplo, você pode enviar uma resposta ao cliente ou modificar algum estado no servidor
+}
+
+
+void Server::listenOnPort(int port) {
+    int sockfd = createSocket(port);
+    if (sockfd < 0) {
+        cerr << "ERROR creating socket." << endl;
+        return;
+    }
+    setSocketTimeout(sockfd, 3);
+
+    struct sockaddr_in server_addr, client_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(port);
+
+    while (!stopThreads.load()) {
+        RequestData request;
+        socklen_t client_len = sizeof(client_addr);
+        // Escuta por requisições
+        ssize_t bytesReceived = recvfrom(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&client_addr, &client_len);
+        if (bytesReceived < 0) {
+            perror("ERROR receiving data.");
+            continue;
+        }
+
+        // Verifica se a requisição é do tipo Request::DOWNGRADE
+        if (request.request == Request::DOWNGRADE) {
+            // Executa a ação definida para a requisição Request::DOWNGRADE
+            handleDowngradeRequest(client_addr);
+        }
+        this_thread::sleep_for(chrono::milliseconds(100));
+        // Aqui você pode adicionar mais verificações para outros tipos de requisições
+    }
+
+    close(sockfd);
+}
